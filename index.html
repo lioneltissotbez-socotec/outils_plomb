@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Convertisseur dynamique Plomb Avant Travaux</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<style>
+body{font-family:Arial,sans-serif;background:#f4f6f8;margin:0;padding:20px;font-size:8pt}
+.container{max-width:1200px;margin:auto;background:#fff;border-radius:10px;padding:18px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+h1{text-align:center;margin:8px 0}
+.lead{text-align:center;color:#52606d;margin-top:0}
+
+/* ===== HEADER SOCOTEC ===== */
+.header-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:10px;
+  flex-wrap:wrap;
+}
+.header-left{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.header-left img{
+  height:42px;
+}
+.header-actions{
+  display:flex;
+  gap:8px;
+}
+.header-actions a{
+  text-decoration:none;
+  padding:6px 10px;
+  border-radius:8px;
+  border:1px solid #2f80ed;
+  color:#2f80ed;
+  font-size:8pt;
+  background:#f8fbff;
+}
+.header-actions a:hover{
+  background:#eaf3ff;
+}
+
+/* ===== EXISTANT ===== */
+.upload{border:2px dashed #40a9ff;border-radius:8px;padding:18px;text-align:center;background:#f8fbff;cursor:pointer}
+.upload.dragover{background:#eefaf1;border-color:#00b894}
+input[type=file]{display:none}
+.btn{padding:8px 14px;border-radius:8px;background:#2f80ed;color:#fff;border:none;cursor:pointer}
+.btn-secondary{padding:8px 14px;border-radius:8px;background:#555;color:#fff;border:none;cursor:pointer}
+
+.preview table{
+  width:90%;
+  max-width:17cm;
+  margin:12px auto;
+  border-collapse:collapse;
+  table-layout:fixed;
+  font-size:8pt;
+}
+td,th{border:1px solid #000;padding:4px;word-wrap:break-word;vertical-align:top}
+
+.panel{
+  background:#f8fbff;
+  border:1px solid #d7e6ff;
+  border-radius:10px;
+  padding:12px;
+  margin:12px auto;
+  width:90%;
+  max-width:17cm;
+}
+.panel-flex{display:flex;gap:16px}
+.panel-left{flex:1}
+.panel-right{width:260px;background:#fff;border:1px solid #d7e6ff;border-radius:10px;padding:10px;font-size:8pt}
+
+/* === palette (inchangée) === */
+
+/* ===== PALETTE COULEURS ===== */
+.palette-pop{
+  display:none;
+  position:absolute;
+  z-index:20;
+  background:#fff;
+  border:1px solid #cfe2ff;
+  border-radius:8px;
+  padding:8px;
+  box-shadow:0 4px 12px rgba(0,0,0,.15);
+}
+
+.palette-grid{
+  display:grid;
+  grid-template-columns:repeat(3,18px);
+  gap:6px;
+  margin-bottom:6px;
+}
+
+.color-swatch{
+  width:18px;
+  height:18px;
+  border:2px solid #999;
+  cursor:pointer;
+}
+
+.color-swatch.active{
+  border-color:#000;
+}
+
+.hex-row{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+.hex-input{
+  width:84px;
+  font-size:8pt;
+  padding:2px 4px;
+  border:1px solid #999;
+  border-radius:6px;
+}
+
+.hex-apply{
+  padding:2px 6px;
+  border-radius:6px;
+  border:1px solid #999;
+  background:#f7f7f7;
+  cursor:pointer;
+  font-size:8pt;
+}
+
+.slice-row{ position:relative; }
+
+/* … TON CSS PALETTE ICI (inchangé) … */
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- ===== HEADER SOCOTEC ===== -->
+<div class="header-top">
+  <div class="header-left">
+    <img src="https://raw.githubusercontent.com/lioneltissotbez-socotec/socotec-assets/main/logo.svg" alt="SOCOTEC">
+    <div>
+      <div style="font-weight:bold;font-size:9pt">SOCOTEC Diagnostics</div>
+      <div style="font-size:8pt;color:#52606d">Outil interne – Plomb avant travaux</div>
+    </div>
+  </div>
+
+  <div class="header-actions">
+    <a href="#" target="_blank">📄 Voir la fiche méthodo</a>
+    <a href="#" target="_blank">🎥 Voir le tuto d’utilisation</a>
+  </div>
+</div>
+
+<h1>🔬 Convertisseur dynamique Plomb Avant Travaux</h1>
+<p class="lead">Traitement Liciel → tableaux Word</p>
+
+<div style="text-align:center;margin-bottom:10px">
+  <button class="btn" id="pickBtn">Choisir un fichier</button>
+  <button class="btn" id="processBtn" style="display:none">▶️ Traiter</button>
+</div>
+
+<div id="uploadArea" class="upload">
+  📁 Glisser / déposer ou cliquer
+  <input type="file" id="fileInput" accept=".xlsx,.xls">
+</div>
+
+<!-- CLASSEMENT -->
+<div class="panel">
+  <b>📂 Classement</b><br><br>
+  <label><input type="radio" name="groupMode" value="ur" checked> UR – toutes localisations</label><br>
+  <label><input type="radio" name="groupMode" value="ur-niveau"> UR – par niveau</label><br>
+  <label><input type="radio" name="groupMode" value="ur-local"> UR – par local</label><br>
+  <label><input type="radio" name="groupMode" value="local-ur"> Local → UR</label>
+</div>
+
+<!-- OPTIONS -->
+<div class="panel panel-flex">
+  <div class="panel-left">
+    <b>🎨 Coloration & Incertitude — Numéro d’UR</b><br><br>
+
+    <b>Numérotation UR :</b><br>
+    <label><input type="radio" name="urMode" value="excel" checked> Utiliser UR du fichier</label><br>
+    <label><input type="radio" name="urMode" value="auto"> Générer automatiquement</label>
+
+    <br><br>
+    <label><input type="checkbox" id="enableColors"> Activer la coloration</label><br><br>
+
+    <label>Nombre de tranches :
+      <input type="number" id="sliceCount" value="3" min="1" max="10">
+    </label>
+
+    <div id="slicesWrap" style="margin-top:6px"></div>
+
+    <br>
+    <label>
+      Incertitude automatique (%) :
+      <input type="number" id="uncertaintyPct" value="10" min="0" max="100" step="0.1">
+    </label>
+
+    <br><br>
+    <button class="btn-secondary" id="applyOptions">Appliquer</button>
+  </div>
+
+  <div class="panel-right">
+    <b>Tranches UR métier (mg/cm²)</b>
+    <ul>
+      <li>0</li><li>0,01 → 0,3</li><li>0,3 → 0,7</li>
+      <li>0,7 → 1</li><li>1 → 2</li><li>2 → 5</li>
+      <li>5 → 10</li><li>&gt;10</li>
+    </ul>
+  </div>
+</div>
+
+<div style="text-align:center;margin:10px">
+  <button class="btn-secondary" id="copyAllBtn">📋 Copier tous les tableaux</button>
+</div>
+
+<div id="previewContainer" class="preview" style="display:none">
+  <div id="previewArea"></div>
+</div>
+
+</div>
+
+<script>
+const uploadArea=document.getElementById("uploadArea");
+const fileInput=document.getElementById("fileInput");
+const pickBtn=document.getElementById("pickBtn");
+const processBtn=document.getElementById("processBtn");
+const previewArea=document.getElementById("previewArea");
+const previewContainer=document.getElementById("previewContainer");
+const enableColors=document.getElementById("enableColors");
+const sliceCount=document.getElementById("sliceCount");
+const slicesWrap=document.getElementById("slicesWrap");
+const uncertaintyPct=document.getElementById("uncertaintyPct");
+const copyAllBtn=document.getElementById("copyAllBtn");
+
+let rowsCache=[];
+
+const COLGROUP=`
+<colgroup>
+  <col style="width:8%"><col style="width:8%"><col style="width:12%">
+  <col style="width:14%"><col style="width:14%"><col style="width:14%">
+  <col style="width:14%"><col style="width:8%"><col style="width:8%">
+</colgroup>`;
+
+/* ===================== UPLOAD ===================== */
+pickBtn.onclick=()=>fileInput.click();
+uploadArea.onclick=()=>fileInput.click();
+fileInput.onchange=()=>handleFile(fileInput.files[0]);
+
+function handleFile(file){
+  const r=new FileReader();
+  r.onload=e=>{
+    const wb=XLSX.read(e.target.result,{type:"array"});
+    const sh=wb.Sheets[wb.SheetNames[0]];
+    const data=XLSX.utils.sheet_to_json(sh,{header:1,defval:''}).slice(1);
+    const IDX={C:2,D:3,E:4,F:5,G:6,H:7,I:8,K:10,Q:16};
+    rowsCache=data.map(r=>({
+      C:r[IDX.C],D:r[IDX.D],E:r[IDX.E],F:r[IDX.F],
+      G:r[IDX.G],H:r[IDX.H],I:r[IDX.I],K:r[IDX.K],Q:r[IDX.Q]
+    }));
+    processBtn.style.display="inline-block";
+  };
+  r.readAsArrayBuffer(file);
+}
+
+/* ===================== OUTILS ===================== */
+function splitLevelLocal(v){
+  if(!v) return {level:'',local:''};
+  const p=String(v).split('-');
+  return {level:p[0]?.trim()||'', local:p.slice(1).join('-').trim()};
+}
+function parseNumber(v){
+  return Number(String(v||'').replace(',','.').replace(/[^0-9.]/g,''));
+}
+
+/* ===================== UR AUTO ===================== */
+function getTrancheForUR(v){
+  if(isNaN(v)) return 'NR';
+  if(v===0) return '0';
+  if(v<=0.3) return '0.01-0.3';
+  if(v<=0.7) return '0.3-0.7';
+  if(v<=1) return '0.7-1';
+  if(v<=2) return '1-2';
+  if(v<=5) return '2-5';
+  if(v<=10) return '5-10';
+  return '>10';
+}
+function computeAutoURNumbers(items){
+  const map=new Map(); let c=1;
+  return items.map(it=>{
+    const tr=getTrancheForUR(parseNumber(it.K));
+    const key=`${it.G}|${it.H}|${it.I}|${tr}`;
+    if(!map.has(key)) map.set(key,c++);
+    return {...it,UR_AUTO:map.get(key)};
+  });
+}
+
+/* ===================== COULEURS — SEULE PARTIE MODIFIÉE ===================== */
+const PALETTE_COLORS=[
+  '#90EE90','#B7E4C7','#2ECC71',
+  '#FFE066','#FFA500','#FF9F1C',
+  '#FF6666','#FF3333','#CC0000'
+];
+
+// defaults demandés (3 tranches) : vert clair / vert foncé / rouge
+const DEFAULT_SLICE_COLORS_3 = ['#90EE90','#2ECC71','#FF3333'];
+
+function normalizeHex(v){
+  v = (v||'').trim();
+  if(!v) return '';
+  if(v[0] !== '#') v = '#'+v;
+  if(/^#([0-9a-fA-F]{6})$/.test(v)) return v.toUpperCase();
+  return '';
+}
+
+function buildSlices(){
+  slicesWrap.innerHTML='';
+  const n = parseInt(sliceCount.value,10) || 3;
+
+  for(let i=0;i<n;i++){
+    const thrDefault = ([0,0.3,1][i] ?? i);
+    const colDefault = (n===3 ? (DEFAULT_SLICE_COLORS_3[i] || '#FF3333') : (PALETTE_COLORS[i % PALETTE_COLORS.length]));
+
+    // IMPORTANT : on conserve .thr et .col (col hidden) pour ne rien casser ailleurs
+    slicesWrap.insertAdjacentHTML('beforeend', `
+      <div class="slice-row" data-i="${i}">
+        <span>Seuil</span>
+        <input class="thr" type="number" step="0.01" value="${thrDefault}">
+        <span class="swatch-preview" style="background:${colDefault}"></span>
+        <button type="button" class="pick-btn">🎨</button>
+
+        <input class="col" type="hidden" value="${colDefault}">
+
+        <div class="palette-pop">
+          <div class="palette-grid">
+            ${PALETTE_COLORS.map(c=>`
+              <div class="color-swatch ${c.toUpperCase()===colDefault.toUpperCase()?'active':''}"
+                   data-c="${c}" style="background:${c}"></div>
+            `).join('')}
+          </div>
+          <div class="hex-row">
+            <input class="hex-input" value="${colDefault}" maxlength="7" placeholder="#RRGGBB">
+            <button type="button" class="hex-apply">OK</button>
+          </div>
+        </div>
+      </div>
+    `);
+  }
+
+  // listeners (scopés par ligne)
+  document.querySelectorAll('.slice-row').forEach(row=>{
+    const pop = row.querySelector('.palette-pop');
+    const btn = row.querySelector('.pick-btn');
+    const hidden = row.querySelector('.col');
+    const preview = row.querySelector('.swatch-preview');
+    const hex = row.querySelector('.hex-input');
+    const ok = row.querySelector('.hex-apply');
+
+    const setColor = (newCol) => {
+      hidden.value = newCol;
+      preview.style.background = newCol;
+      hex.value = newCol;
+
+      // active state
+      row.querySelectorAll('.color-swatch').forEach(s=>{
+        s.classList.toggle('active', (s.dataset.c||'').toUpperCase() === newCol.toUpperCase());
+      });
+    };
+
+    btn.onclick = () => {
+      pop.style.display = (pop.style.display === 'block') ? 'none' : 'block';
+    };
+
+    row.querySelectorAll('.color-swatch').forEach(s=>{
+      s.onclick = () => {
+        setColor(s.dataset.c);
+        // on laisse ouvert (tu peux fermer si tu préfères)
+        // pop.style.display='none';
+        render();
+      };
+    });
+
+    ok.onclick = () => {
+      const v = normalizeHex(hex.value);
+      if(!v) return;
+      setColor(v);
+      render();
+    };
+
+    hex.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter'){
+        e.preventDefault();
+        ok.click();
+      }
+    });
+  });
+}
+
+sliceCount.onchange=()=>{buildSlices();render();};
+buildSlices();
+
+function getColor(v){
+  if(!enableColors.checked) return '';
+  let chosen='';
+  const thrs=[...document.querySelectorAll(".thr")];
+  const cols=[...document.querySelectorAll(".col")]; // hidden, conservé
+  thrs.forEach((t,i)=>{
+    if(parseNumber(v) >= parseNumber(t.value)){
+      chosen = cols[i]?.value || chosen;
+    }
+  });
+  return chosen;
+}
+/* =================== FIN PARTIE MODIFIÉE =================== */
+/* ===================== LÉGENDE DES COULEURS ===================== */
+/* ===================== LÉGENDE DES COULEURS (CORRIGÉE) ===================== */
+function buildLegend(){
+  if(!enableColors.checked) return '';
+
+  const thrs = document.querySelectorAll('.thr');
+  const cols = document.querySelectorAll('.col'); // <-- source correcte
+
+  if(thrs.length === 0 || cols.length === 0) return '';
+
+  let items = '';
+  thrs.forEach((t,i)=>{
+    const col = cols[i]?.value || '#ccc';
+    items += `
+      <span style="
+        display:inline-block;
+        background:${col};
+        padding:2px 6px;
+        margin-right:6px;
+        border:1px solid #000;
+        font-size:8pt;
+      ">
+        ≥ ${t.value}
+      </span>`;
+  });
+
+  return `
+    <table style="margin-top:10px;width:90%;max-width:17cm;border-collapse:collapse">
+      <tr>
+        <td style="border:1px solid #000;padding:6px;font-size:8pt">
+          <b>Légende des couleurs</b><br><br>
+          ${items}
+        </td>
+      </tr>
+    </table>`;
+}
+
+
+/* ===================== RENDER (ton code inchangé) ===================== */
+processBtn.onclick=render;
+document.getElementById("applyOptions").onclick=render;
+enableColors.onchange=render;
+document.querySelectorAll('input[name="groupMode"]').forEach(r=>r.onchange=render);
+document.querySelectorAll('input[name="urMode"]').forEach(r=>r.onchange=render);
+
+function render(){
+  previewArea.innerHTML='';
+  let rows=[...rowsCache];
+
+  const urMode=document.querySelector('input[name="urMode"]:checked').value;
+  if(urMode==='auto') rows=computeAutoURNumbers(rows);
+
+  const mode=document.querySelector('input[name="groupMode"]:checked').value;
+
+  // ===== MODE SPECIAL : Local → UR (regroupement visuel par UR dans le local) =====
+  if(mode === 'local-ur'){
+    const localMap = new Map();
+
+    rows.forEach(it=>{
+      const {local} = splitLevelLocal(it.D);
+      const locKey = (local || 'Local NR');
+      if(!localMap.has(locKey)) localMap.set(locKey, []);
+      localMap.get(locKey).push(it);
+    });
+
+    for(const [loc, items] of localMap){
+      let html = `<table>${COLGROUP}
+        <tr><td colspan="9" style="font-weight:bold">${loc}</td></tr>`;
+
+      const urNameMap = new Map();
+      items.forEach(it=>{
+        const urName = (it.G || 'UR NR');
+        if(!urNameMap.has(urName)) urNameMap.set(urName, []);
+        urNameMap.get(urName).push(it);
+      });
+
+      for(const [urName, urItems] of urNameMap){
+        html += `<tr>
+          <td colspan="9" style="font-weight:bold;background:#eaf3ff">UR : ${urName}</td>
+        </tr>
+        <tr style="background:#00B0F0;color:#fff;font-weight:bold">
+          <th>UR N°</th>
+          <th>N° mesure</th>
+          <th>Niveau</th>
+          <th>Nom UR</th>
+          <th>Zone</th>
+          <th>Substrat</th>
+          <th>Revêtement</th>
+          <th>Résultat</th>
+          <th>Incert.</th>
+        </tr>`;
+
+        urItems.forEach(it=>{
+          const {level} = splitLevelLocal(it.D);
+          let inc = it.Q;
+          const res = parseNumber(it.K);
+          if((inc === '' || inc == null) && !isNaN(res)){
+            inc = Math.max(0.01, res * (parseNumber(uncertaintyPct.value)/100)).toFixed(2);
+          }
+          const urVal = (urMode === 'auto') ? it.UR_AUTO : (it.F || '');
+
+          html += `<tr>
+            <td>${urVal}</td>
+            <td>${it.C||''}</td>
+            <td>${level}</td>
+            <td>${urName}</td>
+            <td>${it.E||''}</td>
+            <td>${it.H||''}</td>
+            <td>${it.I||''}</td>
+            <td style="background:${getColor(it.K)}">${it.K||''}</td>
+            <td>${inc||''}</td>
+          </tr>`;
+        });
+      }
+
+      html += `</table>`;
+      previewArea.insertAdjacentHTML("beforeend", html);
+    }
+  const legend = buildLegend();
+  if(legend){
+    previewArea.insertAdjacentHTML("beforeend", legend);
+  }
+
+    previewContainer.style.display="block";
+    return;
+  }
+
+  // ===== MODES EXISTANTS (inchangés) =====
+  const groups=new Map();
+
+  rows.forEach(it=>{
+    const {level,local}=splitLevelLocal(it.D);
+    let key=it.G||'UR NR';
+    if(mode==='ur-niveau') key+=` – ${level||'NR'}`;
+    if(mode==='ur-local') key+=` – ${local||'NR'}`;
+    if(!groups.has(key)) groups.set(key,[]);
+    groups.get(key).push(it);
+  });
+
+  for(const [k,items] of groups){
+    let html=`<table>${COLGROUP}
+    <tr><td colspan="9" style="font-weight:bold">${k}</td></tr>
+    <tr style="background:#00B0F0;color:#fff;font-weight:bold">
+      <th>UR</th><th>N° mesure</th><th>Niveau</th><th>Local</th>
+      <th>Zone</th><th>Substrat</th><th>Revêtement</th>
+      <th>Résultat</th><th>Incert.</th>
+    </tr>`;
+
+    items.forEach(it=>{
+      const {level,local}=splitLevelLocal(it.D);
+      let inc=it.Q;
+      const res=parseNumber(it.K);
+      if((inc===''||inc==null)&&!isNaN(res)){
+        inc=Math.max(0.01,res*(parseNumber(uncertaintyPct.value)/100)).toFixed(2);
+      }
+      const ur=(urMode==='auto')?it.UR_AUTO:(it.F||'');
+      html+=`<tr>
+        <td>${ur}</td><td>${it.C||''}</td>
+        <td>${level}</td><td>${local}</td>
+        <td>${it.E||''}</td><td>${it.H||''}</td>
+        <td>${it.I||''}</td>
+        <td style="background:${getColor(it.K)}">${it.K||''}</td>
+        <td>${inc||''}</td>
+      </tr>`;
+    });
+
+    html+=`</table>`;
+    previewArea.insertAdjacentHTML("beforeend",html);
+  }
+
+  previewContainer.style.display="block";
+}
+
+/* ===================== COPY WORD (inchangé) ===================== */
+copyAllBtn.onclick = async () => {
+  let html = `<style>
+    table{border-collapse:collapse;width:100%;font-family:Arial;font-size:8pt}
+    td,th{border:1px solid #000;padding:4px}
+  </style>`;
+
+  document.querySelectorAll("#previewArea table").forEach(t=>{
+    html += t.outerHTML;
+    html += `<p style="margin:8pt 0">&nbsp;</p>`;
+  });
+
+  try{
+    await navigator.clipboard.write([
+      new ClipboardItem({
+        'text/html': new Blob([html], { type:'text/html' })
+      })
+    ]);
+
+    /* === FEEDBACK VISUEL UTILISATEUR === */
+    const oldText = copyAllBtn.textContent;
+    const oldBg   = copyAllBtn.style.background;
+
+    copyAllBtn.textContent = "✔ Tableaux copiés";
+    copyAllBtn.style.background = "#00B894";
+
+    setTimeout(()=>{
+      copyAllBtn.textContent = oldText;
+      copyAllBtn.style.background = oldBg;
+    }, 2000);
+
+  }catch(e){
+    alert("Erreur lors de la copie dans le presse-papiers");
+  }
+};
+
+</script>
+
+</body>
+</html>
