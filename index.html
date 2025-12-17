@@ -393,6 +393,7 @@ function buildSlices(){
       const v = normalizeHex(hex.value);
       if(!v) return;
       setColor(v);
+      pop.style.display = 'none'; // ✅ fermeture palette
       render();
     };
 
@@ -634,6 +635,7 @@ copyAllBtn.onclick = async () => {
 
 </body>
 </html>
+
 
 
 
