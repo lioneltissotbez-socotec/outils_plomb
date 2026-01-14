@@ -155,7 +155,7 @@ td,th{border:1px solid #000;padding:4px;word-wrap:break-word;vertical-align:top}
 
   <div class="header-actions">
     <a href="https://lioneltissotbez-socotec.github.io/outils_plomb/IDF_Plomb_Tvx_methode_normative_Saisie_Liciel_2025_11.pdf" target="_blank">📄 Voir la fiche méthodo</a>
-    <a href="https://socotecgroup-my.sharepoint.com/:v:/g/personal/lionel_tissotbez_socotec_com/IQCg8GkQNSAUSrBa5Gf4JvRGAcFEY8vxwhCqnwXTfNUkRfM?e=X9Qx6J" target="_blank">🎥 Voir le tuto d'utilisation</a>
+    <a href="https://socotecgroup-my.sharepoint.com/:v:/g/personal/lionel_tissotbez_socotec_com/IQCg8GkQNSAUSrBa5Gf4JvRGAcFEY8vxwhCqnwXTfNUkRfM?e=X9Qx6J" target="_blank">🎥 Voir le tuto d’utilisation</a>
   </div>
 </div>
 
@@ -215,7 +215,7 @@ td,th{border:1px solid #000;padding:4px;word-wrap:break-word;vertical-align:top}
 <!-- OPTIONS -->
 <div class="panel panel-flex">
   <div class="panel-left">
-    <b>🎨 Coloration & Incertitude — Numéro d'UR</b><br><br>
+    <b>🎨 Coloration & Incertitude — Numéro d’UR</b><br><br>
 
     <b>Numérotation UR :</b><br>
     <label><input type="radio" name="urMode" value="excel" checked> Utiliser UR du fichier</label><br>
@@ -260,109 +260,306 @@ td,th{border:1px solid #000;padding:4px;word-wrap:break-word;vertical-align:top}
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-
-/* ===================== RÉFÉRENCES DOM ===================== */
-const uploadArea = document.getElementById("uploadArea");
-const fileInput = document.getElementById("fileInput");
-const pickBtn = document.getElementById("pickBtn");
-const processBtn = document.getElementById("processBtn");
-const previewArea = document.getElementById("previewArea");
-const previewContainer = document.getElementById("previewContainer");
-const enableColors = document.getElementById("enableColors");
-const sliceCount = document.getElementById("sliceCount");
-const slicesWrap = document.getElementById("slicesWrap");
-const uncertaintyPct = document.getElementById("uncertaintyPct");
-const copyAllBtn = document.getElementById("copyAllBtn");
+const uploadArea=document.getElementById("uploadArea");
+const fileInput=document.getElementById("fileInput");
+const pickBtn=document.getElementById("pickBtn");
+const processBtn=document.getElementById("processBtn");
+const previewArea=document.getElementById("previewArea");
+const previewContainer=document.getElementById("previewContainer");
+const enableColors=document.getElementById("enableColors");
+const sliceCount=document.getElementById("sliceCount");
+const slicesWrap=document.getElementById("slicesWrap");
+const uncertaintyPct=document.getElementById("uncertaintyPct");
+const copyAllBtn=document.getElementById("copyAllBtn");
 
 const showObs = document.getElementById("showObs");
 const showDeg = document.getElementById("showDeg");
+
 const obsCNPE = document.getElementById("obsCNPE");
 
-let rowsCache = [];
+let rowsCache=[];
 
-/* ===================== UPLOAD FICHIER ===================== */
-pickBtn.onclick = () => fileInput.click();
-uploadArea.onclick = () => fileInput.click();
+/* ===== colonnes dynamiques ===== */
+function colCount(){
+  return 9
+    + (showObs.checked ? 1 : 0)
+    + (showDeg.checked ? 1 : 0);
+}
 
-fileInput.onchange = () => {
-  if (fileInput.files.length) {
-    handleFile(fileInput.files[0]);
-  }
-};
+function colgroupHTML(){
+  const baseCols = `
+  <col style="width:8%"><col style="width:8%"><col style="width:12%">
+  <col style="width:14%"><col style="width:14%"><col style="width:14%">
+  <col style="width:14%"><col style="width:8%"><col style="width:8%">`;
 
-/* ===== DRAG & DROP ===== */
-uploadArea.addEventListener('dragover', e => {
-  e.preventDefault();
-  uploadArea.classList.add('dragover');
-});
+  const obsCol = showObs.checked ? `<col style="width:9%">` : '';
+  const degCol = showDeg.checked ? `<col style="width:8%">` : '';
 
-uploadArea.addEventListener('dragleave', () => {
-  uploadArea.classList.remove('dragover');
-});
+  return `<colgroup>${baseCols}${obsCol}${degCol}</colgroup>`;
+}
 
-uploadArea.addEventListener('drop', e => {
-  e.preventDefault();
-  uploadArea.classList.remove('dragover');
+/* ===================== UPLOAD ===================== */
+pickBtn.onclick=()=>fileInput.click();
+uploadArea.onclick=()=>fileInput.click();
+fileInput.onchange=()=>handleFile(fileInput.files[0]);
 
-  const file = e.dataTransfer.files[0];
-  if (file) handleFile(file);
-});
+function handleFile(file){
+  const r=new FileReader();
+  r.onload=e=>{
+    const wb=XLSX.read(e.target.result,{type:"array"});
+    const sh=wb.Sheets[wb.SheetNames[0]];
+    const data=XLSX.utils.sheet_to_json(sh,{header:1,defval:''}).slice(1);
 
-/* ===================== LECTURE EXCEL ===================== */
-function handleFile(file) {
-  const reader = new FileReader();
+    // indices 0-based : C=2 ... K=10, M=12, P=15, Q=16, S=18
+    const IDX={C:2,D:3,E:4,F:5,G:6,H:7,I:8,J:9,K:10,M:12,P:15,Q:16,S:18};
 
-  reader.onload = e => {
-    const wb = XLSX.read(e.target.result, { type: "array" });
-    const sheet = wb.Sheets[wb.SheetNames[0]];
-    const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }).slice(1);
-
-    const IDX = { C:2,D:3,E:4,F:5,G:6,H:7,I:8,J:9,K:10,M:12,P:15,Q:16,S:18 };
-
-    rowsCache = data.map(r => ({
+    rowsCache=data.map(r=>({
       C:r[IDX.C], D:r[IDX.D], E:r[IDX.E], F:r[IDX.F],
       G:r[IDX.G], H:r[IDX.H], I:r[IDX.I], J:r[IDX.J],
       K:r[IDX.K],
-      M:r[IDX.M],
-      P:r[IDX.P],
+      M:r[IDX.M], // Type de dégradation
+      P:r[IDX.P], // Observation
       Q:r[IDX.Q],
       S:r[IDX.S]
     }));
 
-    processBtn.style.display = "inline-block";
+    processBtn.style.display="inline-block";
   };
-
-  reader.readAsArrayBuffer(file);
+  r.readAsArrayBuffer(file);
 }
 
-/* ===================== UTILITAIRES ===================== */
+/* ===================== OUTILS ===================== */
 function splitLevelLocal(v){
   if(!v) return {level:'',local:''};
   const p=String(v).split('-');
   return {level:p[0]?.trim()||'', local:p.slice(1).join('-').trim()};
 }
-
 function parseNumber(v){
   return Number(String(v||'').replace(',','.').replace(/[^0-9.]/g,''));
 }
-
 function formatPlombValue(v){
   const n = parseNumber(v);
   if(isNaN(n)) return v || '';
   if(n === 0) return '0,00';
   return v;
 }
+function isNM(it){
+  return String(it.P || '').trim().toUpperCase() === 'NM';
+}
 
 function buildZone(it){
   return [it.E, it.J, it.S]
     .map(v => String(v||'').trim())
-    .filter(Boolean)
+    .filter(v => v.length)
     .join(' - ');
 }
+function groupTitleBase(it){
+  const urName = (it.G || 'UR NR');
+  const sub = (it.H || 'NR');
+  const rev = (it.I || 'NR');
+  return `${urName} – ${sub} – ${rev}`;
+}
 
-function isNonMesurable(it){
-  return String(it.P || '').trim().toUpperCase() === 'NM';
+/* ===== Observation (CNPE) : concat sans remplacer ===== */
+function getObservation(it){
+  const baseObs = String(it.P || '').trim();
+
+  if(!obsCNPE.checked){
+    return baseObs;
+  }
+
+  // nettoyage renforcé de la valeur résultat
+  const raw = String(it.K || '')
+    .replace(',', '.')
+    .replace(/\s/g, '')
+    .replace(/[^0-9.]/g, '');
+
+  const v = Number(raw);
+
+  if(isNaN(v)){
+    return baseObs;
+  }
+
+  const tag = (v < 0.3) ? '&lt;LQ' : '&gt;LQ';
+
+
+  // éviter doublon
+  if(baseObs.includes('<LQ') || baseObs.includes('>LQ')){
+    return baseObs;
+  }
+
+  if(!baseObs){
+    return tag;
+  }
+
+  return `${baseObs} – ${tag}`;
+}
+
+
+/* ===================== UR AUTO ===================== */
+function getTrancheForUR(v){
+  if(isNaN(v)) return 'NR';
+  if(v===0) return '0';
+  if(v<=0.3) return '0.01-0.3';
+  if(v<=0.7) return '0.3-0.7';
+  if(v<=1) return '0.7-1';
+  if(v<=2) return '1-2';
+  if(v<=5) return '2-5';
+  if(v<=10) return '5-10';
+  return '>10';
+}
+function computeAutoURNumbers(items){
+  const map=new Map(); let c=1;
+  return items.map(it=>{
+    const tr=getTrancheForUR(parseNumber(it.K));
+    const key=`${it.G}|${it.H}|${it.I}|${tr}`;
+    if(!map.has(key)) map.set(key,c++);
+    return {...it,UR_AUTO:map.get(key)};
+  });
+}
+
+/* ===================== COULEURS — inchangé ===================== */
+const PALETTE_COLORS=[
+  '#90EE90','#B7E4C7','#2ECC71',
+  '#FFE066','#FFA500','#FF9F1C',
+  '#FF6666','#FF3333','#CC0000'
+];
+const DEFAULT_SLICE_COLORS_3 = ['#90EE90','#2ECC71','#FF3333'];
+
+function normalizeHex(v){
+  v = (v||'').trim();
+  if(!v) return '';
+  if(v[0] !== '#') v = '#'+v;
+  if(/^#([0-9a-fA-F]{6})$/.test(v)) return v.toUpperCase();
+  return '';
+}
+
+function buildSlices(){
+  slicesWrap.innerHTML='';
+  const n = parseInt(sliceCount.value,10) || 3;
+
+  for(let i=0;i<n;i++){
+    const thrDefault = ([0,0.3,1][i] ?? i);
+    const colDefault = (n===3 ? (DEFAULT_SLICE_COLORS_3[i] || '#FF3333') : (PALETTE_COLORS[i % PALETTE_COLORS.length]));
+
+    slicesWrap.insertAdjacentHTML('beforeend', `
+      <div class="slice-row" data-i="${i}">
+        <span>Seuil</span>
+        <input class="thr" type="number" step="0.01" value="${thrDefault}">
+        <span class="swatch-preview" style="background:${colDefault}"></span>
+        <button type="button" class="pick-btn">🎨</button>
+
+        <input class="col" type="hidden" value="${colDefault}">
+
+        <div class="palette-pop">
+          <div class="palette-grid">
+            ${PALETTE_COLORS.map(c=>`
+              <div class="color-swatch ${c.toUpperCase()===colDefault.toUpperCase()?'active':''}"
+                   data-c="${c}" style="background:${c}"></div>
+            `).join('')}
+          </div>
+          <div class="hex-row">
+            <input class="hex-input" value="${colDefault}" maxlength="7" placeholder="#RRGGBB">
+            <button type="button" class="hex-apply">OK</button>
+          </div>
+        </div>
+      </div>
+    `);
+  }
+
+  document.querySelectorAll('.slice-row').forEach(row=>{
+    const pop = row.querySelector('.palette-pop');
+    const btn = row.querySelector('.pick-btn');
+    const hidden = row.querySelector('.col');
+    const preview = row.querySelector('.swatch-preview');
+    const hex = row.querySelector('.hex-input');
+    const ok = row.querySelector('.hex-apply');
+
+    const setColor = (newCol) => {
+      hidden.value = newCol;
+      preview.style.background = newCol;
+      hex.value = newCol;
+      row.querySelectorAll('.color-swatch').forEach(s=>{
+        s.classList.toggle('active', (s.dataset.c||'').toUpperCase() === newCol.toUpperCase());
+      });
+    };
+
+    btn.onclick = () => {
+      pop.style.display = (pop.style.display === 'block') ? 'none' : 'block';
+    };
+
+    row.querySelectorAll('.color-swatch').forEach(s=>{
+      s.onclick = () => {
+        setColor(s.dataset.c);
+        render();
+      };
+    });
+
+    ok.onclick = () => {
+      const v = normalizeHex(hex.value);
+      if(!v) return;
+      setColor(v);
+      render();
+    };
+
+    hex.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter'){
+        e.preventDefault();
+        ok.click();
+      }
+    });
+  });
+}
+
+sliceCount.onchange=()=>{buildSlices();render();};
+buildSlices();
+
+function getColor(v){
+  if(!enableColors.checked) return '';
+  let chosen='';
+  const thrs=[...document.querySelectorAll(".thr")];
+  const cols=[...document.querySelectorAll(".col")];
+  thrs.forEach((t,i)=>{
+    if(parseNumber(v) >= parseNumber(t.value)){
+      chosen = cols[i]?.value || chosen;
+    }
+  });
+  return chosen;
+}
+
+/* ===================== LÉGENDE DES COULEURS ===================== */
+function buildLegend(){
+  if(!enableColors.checked) return '';
+
+  const thrs = document.querySelectorAll('.thr');
+  const cols = document.querySelectorAll('.col');
+  if(thrs.length === 0 || cols.length === 0) return '';
+
+  let items = '';
+  thrs.forEach((t,i)=>{
+    const col = cols[i]?.value || '#ccc';
+    items += `
+      <span style="
+        display:inline-block;
+        background:${col};
+        padding:2px 6px;
+        margin-right:6px;
+        border:1px solid #000;
+        font-size:8pt;
+      ">
+        ≥ ${t.value}
+      </span>`;
+  });
+
+  return `
+    <table style="margin-top:10px;width:90%;max-width:17cm;border-collapse:collapse">
+      <tr>
+        <td style="border:1px solid #000;padding:6px;font-size:8pt">
+          <b>Légende des couleurs</b><br><br>
+          ${items}
+        </td>
+      </tr>
+    </table>`;
 }
 
 /* ===================== RENDER ===================== */
@@ -434,11 +631,20 @@ const tdExtra_local = (it)=> `
 
         urItems.forEach(it=>{
           const {level} = splitLevelLocal(it.D);
-          let inc = it.Q;
-          const res = parseNumber(it.K);
-          if((inc === '' || inc == null) && !isNaN(res)){
-            inc = Math.max(0.01, res * (parseNumber(uncertaintyPct.value)/100)).toFixed(2);
-          }
+          let inc = '';
+let valK = '';
+let bg = '';
+
+if(!isNM(it)){
+  const res = parseNumber(it.K);
+  valK = formatPlombValue(it.K);
+  bg = getColor(it.K);
+
+  inc = it.Q;
+  if((inc === '' || inc == null) && !isNaN(res)){
+    inc = Math.max(0.01, res * (parseNumber(uncertaintyPct.value)/100)).toFixed(2);
+  }
+}
           const urVal = (urMode === 'auto') ? it.UR_AUTO : (it.F || '');
 
           html += `<tr>
@@ -449,8 +655,8 @@ const tdExtra_local = (it)=> `
             <td>${buildZone(it)}</td>
             <td>${it.H||''}</td>
             <td>${it.I||''}</td>
-            <td style="background:${getColor(it.K)}">${formatPlombValue(it.K)}</td>
-            <td>${inc||''}</td>
+            <td style="background:${bg}">${valK}</td>
+			<td>${inc}</td>
 			${tdExtra_local(it)}
           </tr>`;
         });
@@ -503,11 +709,20 @@ const tdExtra = (it)=> `
 
     items.forEach(it=>{
       const {level,local}=splitLevelLocal(it.D);
-      let inc=it.Q;
-      const res=parseNumber(it.K);
-      if((inc===''||inc==null)&&!isNaN(res)){
-        inc=Math.max(0.01,res*(parseNumber(uncertaintyPct.value)/100)).toFixed(2);
-      }
+      let inc = '';
+let valK = '';
+let bg = '';
+
+if(!isNM(it)){
+  const res = parseNumber(it.K);
+  valK = formatPlombValue(it.K);
+  bg = getColor(it.K);
+
+  inc = it.Q;
+  if((inc === '' || inc == null) && !isNaN(res)){
+    inc = Math.max(0.01, res * (parseNumber(uncertaintyPct.value)/100)).toFixed(2);
+  }
+}
       const ur=(urMode==='auto')?it.UR_AUTO:(it.F||'');
       html+=`<tr>
         <td>${ur}</td><td>${it.C||''}</td>
@@ -515,8 +730,8 @@ const tdExtra = (it)=> `
         <td>${buildZone(it)}</td>
         <td>${it.H||''}</td>
         <td>${it.I||''}</td>
-        <td style="background:${getColor(it.K)}">${formatPlombValue(it.K)}</td>
-        <td>${inc||''}</td>${tdExtra(it)}
+        <td style="background:${bg}">${valK}</td>
+<td>${inc}</td>${tdExtra(it)}
       </tr>`;
     });
 
@@ -628,7 +843,6 @@ document.querySelectorAll("#previewArea table").forEach(t=>{
     alert("Erreur lors de la copie dans le presse-papiers");
   }
 };
-	});
 </script>
 
 </body>
