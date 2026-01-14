@@ -327,6 +327,25 @@ function handleFile(file){
   };
   r.readAsArrayBuffer(file);
 }
+/* ===== DRAG & DROP ===== */
+uploadArea.addEventListener("dragover", e => {
+  e.preventDefault();            // OBLIGATOIRE
+  uploadArea.classList.add("dragover");
+});
+
+uploadArea.addEventListener("dragleave", () => {
+  uploadArea.classList.remove("dragover");
+});
+
+uploadArea.addEventListener("drop", e => {
+  e.preventDefault();            // OBLIGATOIRE
+  uploadArea.classList.remove("dragover");
+
+  const file = e.dataTransfer.files[0];
+  if(file){
+    handleFile(file);
+  }
+});
 
 /* ===================== OUTILS ===================== */
 function splitLevelLocal(v){
