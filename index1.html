@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Convertisseur dynamique Plomb Avant Travaux</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<style>
+body{font-family:Arial,sans-serif;background:#f4f6f8;margin:0;padding:20px;font-size:8pt}
+.container{max-width:1200px;margin:auto;background:#fff;border-radius:10px;padding:18px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+h1{text-align:center;margin:8px 0}
+.lead{text-align:center;color:#52606d;margin-top:0}
+
+/* ===== HEADER SOCOTEC ===== */
+.header-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:10px;
+  flex-wrap:wrap;
+}
+.header-left{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.header-left img{ height:42px; }
+.header-actions{ display:flex; gap:8px; }
+.header-actions a{
+  text-decoration:none;
+  padding:6px 10px;
+  border-radius:8px;
+  border:1px solid #2f80ed;
+  color:#2f80ed;
+  font-size:8pt;
+  background:#f8fbff;
+}
+.header-actions a:hover{ background:#eaf3ff; }
+
+/* ===== HIÉRARCHIE DES 3 PREMIÈRES LIGNES ===== */
+.local-title td{
+  background:#00ACE8;
+  color:#fff;
+  font-weight:700;
+  font-size:11pt;
+  text-transform:uppercase;
+  letter-spacing:0.6px;
+  border-top:1px solid #000;
+}
+.ur-title td{
+  background:#d6e4f5;
+  color:#000;
+  font-weight:600;
+  font-size:9.5pt;
+}
+.table-header th{
+  background:#eef3f8;
+  color:#000;
+  font-weight:600;
+  font-size:8.5pt;
+  text-align:center;
+  vertical-align:middle;
+}
+
+/* ===== EXISTANT ===== */
+.upload{border:2px dashed #40a9ff;border-radius:8px;padding:18px;text-align:center;background:#f8fbff;cursor:pointer}
+.upload.dragover{background:#eefaf1;border-color:#00b894}
+input[type=file]{display:none}
+.btn{padding:8px 14px;border-radius:8px;background:#2f80ed;color:#fff;border:none;cursor:pointer}
+.btn-secondary{padding:8px 14px;border-radius:8px;background:#555;color:#fff;border:none;cursor:pointer}
+
+.preview table{
+  width:95%;
+  max-width:25cm;
+  margin:12px auto;
+  border-collapse:collapse;
+  table-layout:fixed;
+  font-size:8pt;
+}
+td,th{border:1px solid #000;padding:4px;word-wrap:break-word;vertical-align:top}
+
+.panel{
+  background:#f8fbff;
+  border:1px solid #d7e6ff;
+  border-radius:10px;
+  padding:12px;
+  margin:12px auto;
+  width:90%;
+  max-width:17cm;
+}
+.panel-flex{display:flex;gap:16px}
+.panel-left{flex:1}
+.panel-right{width:260px;background:#fff;border:1px solid #d7e6ff;border-radius:10px;padding:10px;font-size:8pt}
+
+/* ===== PALETTE COULEURS ===== */
+.palette-pop{
+  display:none;
+  position:absolute;
+  z-index:20;
+  background:#fff;
+  border:1px solid #cfe2ff;
+  border-radius:8px;
+  padding:8px;
+  box-shadow:0 4px 12px rgba(0,0,0,.15);
+}
+.palette-grid{
+  display:grid;
+  grid-template-columns:repeat(3,18px);
+  gap:6px;
+  margin-bottom:6px;
+}
+.color-swatch{
+  width:18px;
+  height:18px;
+  border:2px solid #999;
+  cursor:pointer;
+}
+.color-swatch.active{ border-color:#000; }
+.hex-row{ display:flex; align-items:center; gap:6px; }
+.hex-input{
+  width:84px;
+  font-size:8pt;
+  padding:2px 4px;
+  border:1px solid #999;
+  border-radius:6px;
+}
+.hex-apply{
+  padding:2px 6px;
+  border-radius:6px;
+  border:1px solid #999;
+  background:#f7f7f7;
+  cursor:pointer;
+  font-size:8pt;
+}
+.slice-row{ position:relative; }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- ===== HEADER SOCOTEC ===== -->
+<div class="header-top">
+  <div class="header-left">
+    <img src="https://raw.githubusercontent.com/lioneltissotbez-socotec/socotec-assets/main/logo.svg" alt="SOCOTEC">
+    <div>
+      <div style="font-weight:bold;font-size:9pt">SOCOTEC Diagnostics</div>
+      <div style="font-size:8pt;color:#52606d">Outil interne – Plomb avant travaux</div>
+    </div>
+  </div>
+
+  <div class="header-actions">
+    <a href="https://lioneltissotbez-socotec.github.io/outils_plomb/IDF_Plomb_Tvx_methode_normative_Saisie_Liciel_2025_11.pdf" target="_blank">📄 Voir la fiche méthodo</a>
+    <a href="https://socotecgroup-my.sharepoint.com/:v:/g/personal/lionel_tissotbez_socotec_com/IQCg8GkQNSAUSrBa5Gf4JvRGAcFEY8vxwhCqnwXTfNUkRfM?e=X9Qx6J" target="_blank">🎥 Voir le tuto d'utilisation</a>
+  </div>
+</div>
+
+<h1>🔬 Convertisseur dynamique Plomb Avant Travaux</h1>
+<p class="lead">Traitement Liciel → tableaux Word</p>
+
+<div style="text-align:center;margin-bottom:10px">
+  <button class="btn" id="pickBtn">Choisir un fichier</button>
+  <button class="btn" id="processBtn" style="display:none">▶️ Traiter</button>
+</div>
+
+<div id="uploadArea" class="upload">
+  📁 Glisser / déposer ou cliquer
+  <input type="file" id="fileInput" accept=".xlsx,.xls">
+</div>
+
+<!-- CLASSEMENT -->
+<div class="panel panel-flex">
+  <!-- CLASSEMENT -->
+  <div class="panel-left">
+    <b>📂 Classement</b><br><br>
+<label>
+  <input type="radio" name="groupMode" value="local-ur" checked>
+  Local → UR
+</label><br>
+
+<label>
+  <input type="radio" name="groupMode" value="ur">
+  UR – toutes localisations
+</label><br>
+
+<label>
+  <input type="radio" name="groupMode" value="ur-niveau">
+  UR – par niveau
+</label><br>
+
+<label>
+  <input type="radio" name="groupMode" value="ur-local">
+  UR – par local
+</label>
+
+  </div>
+
+  <!-- COLONNES OPTIONNELLES -->
+  <div class="panel-right">
+    <b>🧩 Colonnes optionnelles</b><br><br>
+    <label><input type="checkbox" id="showObs"> Observation (P)</label><br>
+    <label><input type="checkbox" id="showDeg"> Dégradation (M)</label><br>
+    <label style="margin-left:12px">
+      <input type="checkbox" id="obsCNPE">
+      Observation CNPE (&lt;LQ / &gt;LQ)
+    </label>
+  </div>
+</div>
+
+
+<!-- OPTIONS -->
+<div class="panel panel-flex">
+  <div class="panel-left">
+    <b>🎨 Coloration & Incertitude — Numéro d'UR</b><br><br>
+
+    <b>Numérotation UR :</b><br>
+    <label><input type="radio" name="urMode" value="excel" checked> Utiliser UR du fichier</label><br>
+    <label><input type="radio" name="urMode" value="auto"> Générer automatiquement</label>
+
+    <br><br>
+    <label><input type="checkbox" id="enableColors"> Activer la coloration</label><br><br>
+
+    <label>Nombre de tranches :
+      <input type="number" id="sliceCount" value="3" min="1" max="10">
+    </label>
+
+    <div id="slicesWrap" style="margin-top:6px"></div>
+
+    <br>
+    <label>
+      Incertitude automatique (%) :
+      <input type="number" id="uncertaintyPct" value="10" min="0" max="100" step="0.1">
+    </label>
+
+    <br><br>
+  </div>
+
+  <div class="panel-right">
+    <b>Tranches UR métier (mg/cm²)</b>
+    <ul>
+      <li>0</li><li>0,01 → 0,3</li><li>0,3 → 0,7</li>
+      <li>0,7 → 1</li><li>1 → 2</li><li>2 → 5</li>
+      <li>5 → 10</li><li>&gt;10</li>
+    </ul>
+  </div>
+</div>
+
+<div style="text-align:center;margin:10px">
+  <button class="btn-secondary" id="copyAllBtn">📋 Copier tous les tableaux</button>
+</div>
+
+<div id="previewContainer" class="preview" style="display:none">
+  <div id="previewArea"></div>
+</div>
+
+</div>
+
+<script>
+const uploadArea=document.getElementById("uploadArea");
+const fileInput=document.getElementById("fileInput");
+const pickBtn=document.getElementById("pickBtn");
+const processBtn=document.getElementById("processBtn");
+const previewArea=document.getElementById("previewArea");
+const previewContainer=document.getElementById("previewContainer");
+const enableColors=document.getElementById("enableColors");
+const sliceCount=document.getElementById("sliceCount");
+const slicesWrap=document.getElementById("slicesWrap");
+const uncertaintyPct=document.getElementById("uncertaintyPct");
+const copyAllBtn=document.getElementById("copyAllBtn");
+
+const showObs = document.getElementById("showObs");
+const showDeg = document.getElementById("showDeg");
+
+const obsCNPE = document.getElementById("obsCNPE");
+
+let rowsCache=[];
+
+/* ===== colonnes dynamiques ===== */
+function colCount(){
+  return 9
+    + (showObs.checked ? 1 : 0)
+    + (showDeg.checked ? 1 : 0);
+}
+
+function colgroupHTML(){
+  const baseCols = `
+  <col style="width:8%"><col style="width:8%"><col style="width:12%">
+  <col style="width:14%"><col style="width:14%"><col style="width:14%">
+  <col style="width:14%"><col style="width:8%"><col style="width:8%">`;
+
+  const obsCol = showObs.checked ? `<col style="width:9%">` : '';
+  const degCol = showDeg.checked ? `<col style="width:8%">` : '';
+
+  return `<colgroup>${baseCols}${obsCol}${degCol}</colgroup>`;
+}
+
+/* ===================== UPLOAD ===================== */
+pickBtn.onclick=()=>fileInput.click();
+uploadArea.onclick=()=>fileInput.click();
+fileInput.onchange=()=>handleFile(fileInput.files[0]);
+
+function handleFile(file){
+  const r=new FileReader();
+  r.onload=e=>{
+    const wb=XLSX.read(e.target.result,{type:"array"});
+    const sh=wb.Sheets[wb.SheetNames[0]];
+    const data=XLSX.utils.sheet_to_json(sh,{header:1,defval:''}).slice(1);
+
+    // indices 0-based : C=2 ... K=10, M=12, P=15, Q=16, S=18
+    const IDX={C:2,D:3,E:4,F:5,G:6,H:7,I:8,J:9,K:10,M:12,P:15,Q:16,S:18};
+
+    rowsCache=data.map(r=>({
+      C:r[IDX.C], D:r[IDX.D], E:r[IDX.E], F:r[IDX.F],
+      G:r[IDX.G], H:r[IDX.H], I:r[IDX.I], J:r[IDX.J],
+      K:r[IDX.K],
+      M:r[IDX.M], // Type de dégradation
+      P:r[IDX.P], // Observation
+      Q:r[IDX.Q],
+      S:r[IDX.S]
+    }));
+
+    processBtn.style.display="inline-block";
+  };
+  r.readAsArrayBuffer(file);
+}
+
+/* ===================== OUTILS ===================== */
+function splitLevelLocal(v){
+  if(!v) return {level:'',local:''};
+  const p=String(v).split('-');
+  return {level:p[0]?.trim()||'', local:p.slice(1).join('-').trim()};
+}
+function parseNumber(v){
+  return Number(String(v||'').replace(',','.').replace(/[^0-9.]/g,''));
+}
+function formatPlombValue(v){
+  const n = parseNumber(v);
+  if(isNaN(n)) return v || '';
+  if(n === 0) return '0,00';
+  return v;
+}
+function buildZone(it){
+  return [it.E, it.J, it.S]
+    .map(v => String(v||'').trim())
+    .filter(v => v.length)
+    .join(' - ');
+}
+function groupTitleBase(it){
+  const urName = (it.G || 'UR NR');
+  const sub = (it.H || 'NR');
+  const rev = (it.I || 'NR');
+  return `${urName} – ${sub} – ${rev}`;
+}
+
+/* ===== Observation (CNPE) : concat sans remplacer ===== */
+function getObservation(it){
+  const baseObs = String(it.P || '').trim();
+
+  if(!obsCNPE.checked){
+    return baseObs;
+  }
+
+  // nettoyage renforcé de la valeur résultat
+  const raw = String(it.K || '')
+    .replace(',', '.')
+    .replace(/\s/g, '')
+    .replace(/[^0-9.]/g, '');
+
+  const v = Number(raw);
+
+  if(isNaN(v)){
+    return baseObs;
+  }
+
+  const tag = (v < 0.3) ? '&lt;LQ' : '&gt;LQ';
+
+
+  // éviter doublon
+  if(baseObs.includes('<LQ') || baseObs.includes('>LQ')){
+    return baseObs;
+  }
+
+  if(!baseObs){
+    return tag;
+  }
+
+  return `${baseObs} – ${tag}`;
+}
+
+/* ===== Vérifier si la mesure est NM ===== */
+function isNonMesurable(it){
+  const obs = String(it.P || '').trim().toUpperCase();
+  return obs === 'NM';
+}
+
+/* ===================== UR AUTO ===================== */
+function getTrancheForUR(v){
+  if(isNaN(v)) return 'NR';
+  if(v===0) return '0';
+  if(v<=0.3) return '0.01-0.3';
+  if(v<=0.7) return '0.3-0.7';
+  if(v<=1) return '0.7-1';
+  if(v<=2) return '1-2';
+  if(v<=5) return '2-5';
+  if(v<=10) return '5-10';
+  return '>10';
+}
+function computeAutoURNumbers(items){
+  const map=new Map(); let c=1;
+  return items.map(it=>{
+    const tr=getTrancheForUR(parseNumber(it.K));
+    const key=`${it.G}|${it.H}|${it.I}|${tr}`;
+    if(!map.has(key)) map.set(key,c++);
+    return {...it,UR_AUTO:map.get(key)};
+  });
+}
+
+/* ===================== COULEURS — inchangé ===================== */
+const PALETTE_COLORS=[
+  '#90EE90','#B7E4C7','#2ECC71',
+  '#FFE066','#FFA500','#FF9F1C',
+  '#FF6666','#FF3333','#CC0000'
+];
+const DEFAULT_SLICE_COLORS_3 = ['#90EE90','#2ECC71','#FF3333'];
+
+function normalizeHex(v){
+  v = (v||'').trim();
+  if(!v) return '';
+  if(v[0] !== '#') v = '#'+v;
+  if(/^#([0-9a-fA-F]{6})$/.test(v)) return v.toUpperCase();
+  return '';
+}
+
+function buildSlices(){
+  slicesWrap.innerHTML='';
+  const n = parseInt(sliceCount.value,10) || 3;
+
+  for(let i=0;i<n;i++){
+    const thrDefault = ([0,0.3,1][i] ?? i);
+    const colDefault = (n===3 ? (DEFAULT_SLICE_COLORS_3[i] || '#FF3333') : (PALETTE_COLORS[i % PALETTE_COLORS.length]));
+
+    slicesWrap.insertAdjacentHTML('beforeend', `
+      <div class="slice-row" data-i="${i}">
+        <span>Seuil</span>
+        <input class="thr" type="number" step="0.01" value="${thrDefault}">
+        <span class="swatch-preview" style="background:${colDefault}"></span>
+        <button type="button" class="pick-btn">🎨</button>
+
+        <input class="col" type="hidden" value="${colDefault}">
+
+        <div class="palette-pop">
+          <div class="palette-grid">
+            ${PALETTE_COLORS.map(c=>`
+              <div class="color-swatch ${c.toUpperCase()===colDefault.toUpperCase()?'active':''}"
+                   data-c="${c}" style="background:${c}"></div>
+            `).join('')}
+          </div>
+          <div class="hex-row">
+            <input class="hex-input" value="${colDefault}" maxlength="7" placeholder="#RRGGBB">
+            <button type="button" class="hex-apply">OK</button>
+          </div>
+        </div>
+      </div>
+    `);
+  }
+
+  document.querySelectorAll('.slice-row').forEach(row=>{
+    const pop = row.querySelector('.palette-pop');
+    const btn = row.querySelector('.pick-btn');
+    const hidden = row.querySelector('.col');
+    const preview = row.querySelector('.swatch-preview');
+    const hex = row.querySelector('.hex-input');
+    const ok = row.querySelector('.hex-apply');
+
+    const setColor = (newCol) => {
+      hidden.value = newCol;
+      preview.style.background = newCol;
+      hex.value = newCol;
+      row.querySelectorAll('.color-swatch').forEach(s=>{
+        s.classList.toggle('active', (s.dataset.c||'').toUpperCase() === newCol.toUpperCase());
+      });
+    };
+
+    btn.onclick = () => {
+      pop.style.display = (pop.style.display === 'block') ? 'none' : 'block';
+    };
+
+    row.querySelectorAll('.color-swatch').forEach(s=>{
+      s.onclick = () => {
+        setColor(s.dataset.c);
+        render();
+      };
+    });
+
+    ok.onclick = () => {
+      const v = normalizeHex(hex.value);
+      if(!v) return;
+      setColor(v);
+      render();
+    };
+
+    hex.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter'){
+        e.preventDefault();
+        ok.click();
+      }
+    });
+  });
+}
+
+sliceCount.onchange=()=>{buildSlices();render();};
+buildSlices();
+
+function getColor(v){
+  if(!enableColors.checked) return '';
+  let chosen='';
+  const thrs=[...document.querySelectorAll(".thr")];
+  const cols=[...document.querySelectorAll(".col")];
+  thrs.forEach((t,i)=>{
+    if(parseNumber(v) >= parseNumber(t.value)){
+      chosen = cols[i]?.value || chosen;
+    }
+  });
+  return chosen;
+}
+
+/* ===================== LÉGENDE DES COULEURS ===================== */
+function buildLegend(){
+  if(!enableColors.checked) return '';
+
+  const thrs = document.querySelectorAll('.thr');
+  const cols = document.querySelectorAll('.col');
+  if(thrs.length === 0 || cols.length === 0) return '';
+
+  let items = '';
+  thrs.forEach((t,i)=>{
+    const col = cols[i]?.value || '#ccc';
+    items += `
+      <span style="
+        display:inline-block;
+        background:${col};
+        padding:2px 6px;
+        margin-right:6px;
+        border:1px solid #000;
+        font-size:8pt;
+      ">
+        ≥ ${t.value}
+      </span>`;
+  });
+
+  return `
+    <table style="margin-top:10px;width:90%;max-width:17cm;border-collapse:collapse">
+      <tr>
+        <td style="border:1px solid #000;padding:6px;font-size:8pt">
+          <b>Légende des couleurs</b><br><br>
+          ${items}
+        </td>
+      </tr>
+    </table>`;
+}
+
+/* ===================== RENDER ===================== */
+processBtn.onclick=render;
+enableColors.onchange=render;
+showObs.onchange = render;
+showDeg.onchange = render;
+obsCNPE.onchange=render;
+document.querySelectorAll('input[name="groupMode"]').forEach(r=>r.onchange=render);
+document.querySelectorAll('input[name="urMode"]').forEach(r=>r.onchange=render);
+
+function render(){
+  previewArea.innerHTML='';
+  let rows=[...rowsCache];
+
+  const urMode=document.querySelector('input[name="urMode"]:checked').value;
+  if(urMode==='auto') rows=computeAutoURNumbers(rows);
+
+  const mode=document.querySelector('input[name="groupMode"]:checked').value;
+  const COLS = colCount();
+  const CG = colgroupHTML();
+
+const thExtra_local = `
+  ${showObs.checked ? `<th>Observation</th>` : ''}
+  ${showDeg.checked ? `<th>Dégradation</th>` : ''}
+`;
+
+const tdExtra_local = (it)=> `
+ ${(showObs.checked || obsCNPE.checked) ? `<td>${getObservation(it) || ''}</td>` : ''}
+  ${showDeg.checked ? `<td>${it.M||''}</td>` : ''}
+`;
+
+  // ===== MODE SPECIAL : Local → UR =====
+  if(mode === 'local-ur'){
+    const localMap = new Map();
+
+    rows.forEach(it=>{
+      const {local} = splitLevelLocal(it.D);
+      const locKey = (local || 'Local NR');
+      if(!localMap.has(locKey)) localMap.set(locKey, []);
+      localMap.get(locKey).push(it);
+    });
+
+    for(const [loc, items] of localMap){
+      let html = `<table>${CG}
+        <tr class="local-title"><td colspan="${COLS}">${loc}</td></tr>`;
+
+      const urNameMap = new Map();
+      items.forEach(it=>{
+        const urKey = groupTitleBase(it);
+        if(!urNameMap.has(urKey)) urNameMap.set(urKey, []);
+        urNameMap.get(urKey).push(it);
+      });
+
+      for(const [urKey, urItems] of urNameMap){
+        html += `<tr class="ur-title"><td colspan="${COLS}">UR : ${urKey}</td></tr>
+        <tr class="table-header">
+          <th>UR N°</th>
+          <th>N° mesure</th>
+          <th>Niveau</th>
+          <th>Unité de repérage</th>
+          <th>Zone</th>
+          <th>Substrat</th>
+          <th>Revêtement apparent</th>
+          <th>Teneur en plomb en mg/cm²</th>
+          <th>Incertitude de la mesure +/- mg/cm²</th>
+		  ${thExtra_local}
+        </tr>`;
+
+        urItems.forEach(it=>{
+          const {level} = splitLevelLocal(it.D);
+          const isNM = isNonMesurable(it);
+          
+          let teneurValue = '';
+          let incValue = '';
+          let bgColor = '';
+          
+          if(!isNM){
+            teneurValue = formatPlombValue(it.K);
+            bgColor = getColor(it.K);
+            
+            let inc = it.Q;
+            const res = parseNumber(it.K);
+            if((inc === '' || inc == null) && !isNaN(res)){
+              inc = Math.max(0.01, res * (parseNumber(uncertaintyPct.value)/100)).toFixed(2);
+            }
+            incValue = inc || '';
+          }
+          
+          const urVal = (urMode === 'auto') ? it.UR_AUTO : (it.F || '');
+
+          html += `<tr>
+            <td>${urVal}</td>
+            <td>${it.C||''}</td>
+            <td>${level}</td>
+            <td>${it.G || ''}</td>
+            <td>${buildZone(it)}</td>
+            <td>${it.H||''}</td>
+            <td>${it.I||''}</td>
+            <td style="background:${bgColor}">${teneurValue}</td>
+            <td>${incValue}</td>
+			${tdExtra_local(it)}
+          </tr>`;
+        });
+      }
+
+      html += `</table>`;
+      previewArea.insertAdjacentHTML("beforeend", html);
+    }
+
+    const legend = buildLegend();
+    if(legend){
+      previewArea.insertAdjacentHTML("beforeend", legend);
+    }
+
+    previewContainer.style.display="block";
+    return;
+  }
+
+  // ===== MODES UR / UR-NIVEAU / UR-LOCAL =====
+  const groups=new Map();
+
+  rows.forEach(it=>{
+    const {level,local}=splitLevelLocal(it.D);
+    let key = groupTitleBase(it);
+    if(mode==='ur-niveau') key += ` – ${level||'NR'}`;
+    if(mode==='ur-local')  key += ` – ${local||'NR'}`;
+    if(!groups.has(key)) groups.set(key,[]);
+    groups.get(key).push(it);
+  });
+
+  const thExtra = `
+  ${(showObs.checked || obsCNPE.checked) ? `<th>Observation</th>` : ''}
+  ${showDeg.checked ? `<th>Dégradation</th>` : ''}
+`;
+
+const tdExtra = (it)=> `
+  ${showObs.checked ? `<td>${getObservation(it) || ''}</td>` : ''}
+  ${showDeg.checked ? `<td>${it.M||''}</td>` : ''}
+`;
+
+
+  for(const [k,items] of groups){
+    let html=`<table>${CG}
+      <tr class="local-title"><td colspan="${COLS}">${k}</td></tr>
+      <tr class="table-header">
+        <th>UR</th><th>N° mesure</th><th>Niveau</th><th>Local</th>
+        <th>Zone</th><th>Substrat</th><th>Revêtement apparent</th>
+                <th>Teneur en plomb en mg/cm²</th><th>Incertitude de la mesure +/-  en mg/cm²</th>${thExtra}
+      </tr>`;
+
+    items.forEach(it=>{
+      const {level,local}=splitLevelLocal(it.D);
+      const isNM = isNonMesurable(it);
+      
+      let teneurValue = '';
+      let incValue = '';
+      let bgColor = '';
+      
+      if(!isNM){
+        teneurValue = formatPlombValue(it.K);
+        bgColor = getColor(it.K);
+        
+        let inc = it.Q;
+        const res = parseNumber(it.K);
+        if((inc===''||inc==null)&&!isNaN(res)){
+          inc=Math.max(0.01,res*(parseNumber(uncertaintyPct.value)/100)).toFixed(2);
+        }
+        incValue = inc || '';
+      }
+      
+      const ur=(urMode==='auto')?it.UR_AUTO:(it.F||'');
+      html+=`<tr>
+        <td>${ur}</td><td>${it.C||''}</td>
+        <td>${level}</td><td>${local}</td>
+        <td>${buildZone(it)}</t
