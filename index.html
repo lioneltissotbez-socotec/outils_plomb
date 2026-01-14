@@ -323,7 +323,7 @@ function handleFile(file){
       S:r[IDX.S]
     }));
 
-    processBtn.style.display="inline-block";
+    render(); // 🔥 traitement automatique
   };
   r.readAsArrayBuffer(file);
 }
