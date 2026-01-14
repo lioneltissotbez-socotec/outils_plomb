@@ -366,29 +366,269 @@ function isNonMesurable(it){
 }
 
 /* ===================== RENDER ===================== */
-processBtn.onclick = render;
-enableColors.onchange = render;
+processBtn.onclick=render;
+enableColors.onchange=render;
 showObs.onchange = render;
 showDeg.onchange = render;
-obsCNPE.onchange = render;
-
-document.querySelectorAll('input[name="groupMode"]').forEach(r => r.onchange = render);
-document.querySelectorAll('input[name="urMode"]').forEach(r => r.onchange = render);
+obsCNPE.onchange=render;
+document.querySelectorAll('input[name="groupMode"]').forEach(r=>r.onchange=render);
+document.querySelectorAll('input[name="urMode"]').forEach(r=>r.onchange=render);
 
 function render(){
-  if(!rowsCache.length) return;
+  previewArea.innerHTML='';
+  let rows=[...rowsCache];
 
-  previewArea.innerHTML = '';
-  previewContainer.style.display = 'block';
+  const urMode=document.querySelector('input[name="urMode"]:checked').value;
+  if(urMode==='auto') rows=computeAutoURNumbers(rows);
 
-  previewArea.innerHTML = `
-    <div style="padding:10px;font-size:9pt">
-      ✔️ Fichier chargé : <b>${rowsCache.length}</b> lignes détectées<br>
-      👉 Le reste de ton moteur de rendu reste inchangé
-    </div>
-  `;
+  const mode=document.querySelector('input[name="groupMode"]:checked').value;
+  const COLS = colCount();
+  const CG = colgroupHTML();
+
+const thExtra_local = `
+  ${showObs.checked ? `<th>Observation</th>` : ''}
+  ${showDeg.checked ? `<th>Dégradation</th>` : ''}
+`;
+
+const tdExtra_local = (it)=> `
+ ${(showObs.checked || obsCNPE.checked) ? `<td>${getObservation(it) || ''}</td>` : ''}
+  ${showDeg.checked ? `<td>${it.M||''}</td>` : ''}
+`;
+
+  // ===== MODE SPECIAL : Local → UR =====
+  if(mode === 'local-ur'){
+    const localMap = new Map();
+
+    rows.forEach(it=>{
+      const {local} = splitLevelLocal(it.D);
+      const locKey = (local || 'Local NR');
+      if(!localMap.has(locKey)) localMap.set(locKey, []);
+      localMap.get(locKey).push(it);
+    });
+
+    for(const [loc, items] of localMap){
+      let html = `<table>${CG}
+        <tr class="local-title"><td colspan="${COLS}">${loc}</td></tr>`;
+
+      const urNameMap = new Map();
+      items.forEach(it=>{
+        const urKey = groupTitleBase(it);
+        if(!urNameMap.has(urKey)) urNameMap.set(urKey, []);
+        urNameMap.get(urKey).push(it);
+      });
+
+      for(const [urKey, urItems] of urNameMap){
+        html += `<tr class="ur-title"><td colspan="${COLS}">UR : ${urKey}</td></tr>
+        <tr class="table-header">
+          <th>UR N°</th>
+          <th>N° mesure</th>
+          <th>Niveau</th>
+          <th>Unité de repérage</th>
+          <th>Zone</th>
+          <th>Substrat</th>
+          <th>Revêtement apparent</th>
+          <th>Teneur en plomb en mg/cm²</th>
+          <th>Incertitude de la mesure +/- mg/cm²</th>
+		  ${thExtra_local}
+        </tr>`;
+
+        urItems.forEach(it=>{
+          const {level} = splitLevelLocal(it.D);
+          let inc = it.Q;
+          const res = parseNumber(it.K);
+          if((inc === '' || inc == null) && !isNaN(res)){
+            inc = Math.max(0.01, res * (parseNumber(uncertaintyPct.value)/100)).toFixed(2);
+          }
+          const urVal = (urMode === 'auto') ? it.UR_AUTO : (it.F || '');
+
+          html += `<tr>
+            <td>${urVal}</td>
+            <td>${it.C||''}</td>
+            <td>${level}</td>
+            <td>${it.G || ''}</td>
+            <td>${buildZone(it)}</td>
+            <td>${it.H||''}</td>
+            <td>${it.I||''}</td>
+            <td style="background:${getColor(it.K)}">${formatPlombValue(it.K)}</td>
+            <td>${inc||''}</td>
+			${tdExtra_local(it)}
+          </tr>`;
+        });
+      }
+
+      html += `</table>`;
+      previewArea.insertAdjacentHTML("beforeend", html);
+    }
+
+    const legend = buildLegend();
+    if(legend){
+      previewArea.insertAdjacentHTML("beforeend", legend);
+    }
+
+    previewContainer.style.display="block";
+    return;
+  }
+
+  // ===== MODES UR / UR-NIVEAU / UR-LOCAL =====
+  const groups=new Map();
+
+  rows.forEach(it=>{
+    const {level,local}=splitLevelLocal(it.D);
+    let key = groupTitleBase(it);
+    if(mode==='ur-niveau') key += ` – ${level||'NR'}`;
+    if(mode==='ur-local')  key += ` – ${local||'NR'}`;
+    if(!groups.has(key)) groups.set(key,[]);
+    groups.get(key).push(it);
+  });
+
+  const thExtra = `
+  ${(showObs.checked || obsCNPE.checked) ? `<th>Observation</th>` : ''}
+  ${showDeg.checked ? `<th>Dégradation</th>` : ''}
+`;
+
+const tdExtra = (it)=> `
+  ${showObs.checked ? `<td>${getObservation(it) || ''}</td>` : ''}
+  ${showDeg.checked ? `<td>${it.M||''}</td>` : ''}
+`;
+
+
+  for(const [k,items] of groups){
+    let html=`<table>${CG}
+      <tr class="local-title"><td colspan="${COLS}">${k}</td></tr>
+      <tr class="table-header">
+        <th>UR</th><th>N° mesure</th><th>Niveau</th><th>Local</th>
+        <th>Zone</th><th>Substrat</th><th>Revêtement apparent</th>
+                <th>Teneur en plomb en mg/cm²</th><th>Incertitude de la mesure +/-  en mg/cm²</th>${thExtra}
+      </tr>`;
+
+    items.forEach(it=>{
+      const {level,local}=splitLevelLocal(it.D);
+      let inc=it.Q;
+      const res=parseNumber(it.K);
+      if((inc===''||inc==null)&&!isNaN(res)){
+        inc=Math.max(0.01,res*(parseNumber(uncertaintyPct.value)/100)).toFixed(2);
+      }
+      const ur=(urMode==='auto')?it.UR_AUTO:(it.F||'');
+      html+=`<tr>
+        <td>${ur}</td><td>${it.C||''}</td>
+        <td>${level}</td><td>${local}</td>
+        <td>${buildZone(it)}</td>
+        <td>${it.H||''}</td>
+        <td>${it.I||''}</td>
+        <td style="background:${getColor(it.K)}">${formatPlombValue(it.K)}</td>
+        <td>${inc||''}</td>${tdExtra(it)}
+      </tr>`;
+    });
+
+    html+=`</table>`;
+    previewArea.insertAdjacentHTML("beforeend",html);
+  }
+
+  const legend = buildLegend();
+  if(legend){
+    previewArea.insertAdjacentHTML("beforeend", legend);
+  }
+
+  previewContainer.style.display="block";
+}
+/* ===================== WORD – INLINE STYLES ===================== */
+function inlineForWord(table){
+
+  // ===== Titres =====
+  table.querySelectorAll('tr.local-title td').forEach(td=>{
+    td.style.background = '#00ACE8';
+    td.style.color = '#ffffff';
+    td.style.fontWeight = '700';
+    td.style.fontSize = '11pt';
+    td.style.textTransform = 'uppercase';
+    td.style.letterSpacing = '0.6px';
+  });
+
+  table.querySelectorAll('tr.ur-title td').forEach(td=>{
+    td.style.background = '#d6e4f5';
+    td.style.color = '#000000';
+    td.style.fontWeight = '600';
+    td.style.fontSize = '9.5pt';
+  });
+
+  table.querySelectorAll('tr.table-header th').forEach(th=>{
+    th.style.background = '#eef3f8';
+    th.style.color = '#000000';
+    th.style.fontWeight = '600';
+    th.style.fontSize = '8.5pt';
+    th.style.textAlign = 'center';
+    th.style.verticalAlign = 'middle';
+  });
+
+  // ===== Style global cellules =====
+  table.querySelectorAll('td, th').forEach(cell=>{
+    cell.style.border = '1px solid #000';
+    cell.style.padding = '4px';
+    cell.style.fontFamily = 'Arial';
+    cell.style.fontSize = '8pt';
+    cell.style.verticalAlign = 'top';
+    cell.style.wordBreak = 'break-word';
+    cell.style.whiteSpace = 'normal';
+  });
+
+  // ===== FORÇAGE LARGEUR WORD (COLONNES 8 & 9) =====
+  table.querySelectorAll('tr').forEach(tr=>{
+    const cells = tr.children;
+    if(cells.length >= 9){
+      // Colonne 8 : Teneur plomb
+      cells[7].style.width = '2cm';
+      cells[7].style.maxWidth = '2cm';
+
+      // Colonne 9 : Incertitude
+      cells[8].style.width = '2cm';
+      cells[8].style.maxWidth = '2cm';
+    }
+  });
+
+  table.style.borderCollapse = 'collapse';
+  table.style.width = '100%';
+  table.style.tableLayout = 'fixed'; // 🔑 indispensable pour Word
 }
 
-/* ===================== FIN ===================== */
+
+/* ===================== COPY WORD ===================== */
+copyAllBtn.onclick = async () => {
+  let html = `<style>
+    table{border-collapse:collapse;width:100%;font-family:Arial;font-size:8pt}
+    td,th{border:1px solid #000;padding:4px}
+  </style>`;
+
+document.querySelectorAll("#previewArea table").forEach(t=>{
+  const clone = t.cloneNode(true);
+  inlineForWord(clone);
+  html += clone.outerHTML;
+  html += `<p style="margin:8pt 0">&nbsp;</p>`;
 });
+
+
+  try{
+    await navigator.clipboard.write([
+      new ClipboardItem({
+        'text/html': new Blob([html], { type:'text/html' })
+      })
+    ]);
+
+    const oldText = copyAllBtn.textContent;
+    const oldBg   = copyAllBtn.style.background;
+
+    copyAllBtn.textContent = "✔ Tableaux copiés";
+    copyAllBtn.style.background = "#00B894";
+
+    setTimeout(()=>{
+      copyAllBtn.textContent = oldText;
+      copyAllBtn.style.background = oldBg;
+    }, 2000);
+
+  }catch(e){
+    alert("Erreur lors de la copie dans le presse-papiers");
+  }
+};
 </script>
+
+</body>
+</html>
