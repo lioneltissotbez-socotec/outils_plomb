@@ -299,9 +299,46 @@ function colgroupHTML(){
 }
 
 /* ===================== UPLOAD ===================== */
-pickBtn.onclick=()=>fileInput.click();
-uploadArea.onclick=()=>fileInput.click();
-fileInput.onchange=()=>handleFile(fileInput.files[0]);
+pickBtn.addEventListener('click', function(e){
+  e.preventDefault();
+  e.stopPropagation();
+  fileInput.click();
+});
+
+uploadArea.addEventListener('click', function(e){
+  e.preventDefault();
+  e.stopPropagation();
+  fileInput.click();
+});
+
+fileInput.addEventListener('change', function(e){
+  if(this.files && this.files[0]){
+    handleFile(this.files[0]);
+  }
+});
+
+// Drag & Drop
+uploadArea.addEventListener('dragover', function(e){
+  e.preventDefault();
+  e.stopPropagation();
+  this.classList.add('dragover');
+});
+
+uploadArea.addEventListener('dragleave', function(e){
+  e.preventDefault();
+  e.stopPropagation();
+  this.classList.remove('dragover');
+});
+
+uploadArea.addEventListener('drop', function(e){
+  e.preventDefault();
+  e.stopPropagation();
+  this.classList.remove('dragover');
+  
+  if(e.dataTransfer.files && e.dataTransfer.files[0]){
+    handleFile(e.dataTransfer.files[0]);
+  }
+});
 
 function handleFile(file){
   const r=new FileReader();
@@ -639,6 +676,88 @@ const tdExtra_local = (it)=> `
           let bgColor = '';
           
           if(!isNM){
+            teneurValue = formatPlombValue(it.K);
+            bgColor = getColor(it.K);
+            
+            let inc = it.Q;
+            const res = parseNumber(it.K);
+            if((inc === '' || inc == null) && !isNaN(res)){
+              inc = Math.max(0.01, res * (parseNumber(uncertaintyPct.value)/100)).toFixed(2);
+            }
+            incValue = inc || '';
+          }
+          
+          const urVal = (urMode === 'auto') ? it.UR_AUTO : (it.F || '');
+
+          html += `<tr>
+            <td>${urVal}</td>
+            <td>${it.C||''}</td>
+            <td>${level}</td>
+            <td>${it.G || ''}</td>
+            <td>${buildZone(it)}</td>
+            <td>${it.H||''}</td>
+            <td>${it.I||''}</td>
+            <td style="background:${bgColor}">${teneurValue}</td>
+            <td>${incValue}</td>
+			${tdExtra_local(it)}
+          </tr>`;
+        });
+      }
+
+      html += `</table>`;
+      previewArea.insertAdjacentHTML("beforeend", html);
+    }
+
+    const legend = buildLegend();
+    if(legend){
+      previewArea.insertAdjacentHTML("beforeend", legend);
+    }
+
+    previewContainer.style.display="block";
+    return;
+  }
+
+  // ===== MODES UR / UR-NIVEAU / UR-LOCAL =====
+  const groups=new Map();
+
+  rows.forEach(it=>{
+    const {level,local}=splitLevelLocal(it.D);
+    let key = groupTitleBase(it);
+    if(mode==='ur-niveau') key += ` – ${level||'NR'}`;
+    if(mode==='ur-local')  key += ` – ${local||'NR'}`;
+    if(!groups.has(key)) groups.set(key,[]);
+    groups.get(key).push(it);
+  });
+
+  const thExtra = `
+  ${(showObs.checked || obsCNPE.checked) ? `<th>Observation</th>` : ''}
+  ${showDeg.checked ? `<th>Dégradation</th>` : ''}
+`;
+
+const tdExtra = (it)=> `
+  ${showObs.checked ? `<td>${getObservation(it) || ''}</td>` : ''}
+  ${showDeg.checked ? `<td>${it.M||''}</td>` : ''}
+`;
+
+
+  for(const [k,items] of groups){
+    let html=`<table>${CG}
+      <tr class="local-title"><td colspan="${COLS}">${k}</td></tr>
+      <tr class="table-header">
+        <th>UR</th><th>N° mesure</th><th>Niveau</th><th>Local</th>
+        <th>Zone</th><th>Substrat</th><th>Revêtement apparent</th>
+                <th>Teneur en plomb en mg/cm²</th><th>Incertitude de la mesure +/-  en mg/cm²</th>${thExtra}
+      </tr>`;
+
+    items.forEach(it=>{
+      const {level,local}=splitLevelLocal(it.D);
+      const isNM = isNonMesurable(it);
+      
+      let teneurValue = '';
+      let incValue = '';
+      let bgColor = '';
+      
+      if(!isNM){
             teneurValue = formatPlombValue(it.K);
             bgColor = getColor(it.K);
             
