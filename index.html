@@ -693,7 +693,7 @@ function uniqueLevelsLabel(items){
     items.map(it => splitLevelLocal(it.D).level).filter(v => v)
   )];
   if(!lvls.length) return '';
-  return ` — Niveau${lvls.length > 1 ? 's' : ''} : ${lvls.join(', ')}`;
+  return ` — Niveau${lvls.length > 1 ? 'x' : ''} : ${lvls.join(', ')}`;
 }
 
 /* ===================== RENDER ===================== */
