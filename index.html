@@ -191,6 +191,125 @@ td,th{border:1px solid #000;padding:4px;word-wrap:break-word;vertical-align:top}
   color:#fff;
 }
 .btn-toggle:hover:not(.active){ background:#d0e4ff; }
+
+/* ===== MODAL POPUP ALERTE SÉPARATEUR ===== */
+.modal-overlay{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.45);
+  z-index:1000;
+  align-items:center;
+  justify-content:center;
+}
+.modal-overlay.open{
+  display:flex;
+}
+.modal-box{
+  background:#fff;
+  border:2px solid #00ACE8;
+  border-radius:12px;
+  padding:24px 28px;
+  max-width:560px;
+  width:94%;
+  box-shadow:0 12px 40px rgba(0,0,0,0.22);
+  position:relative;
+  font-size:9pt;
+}
+.modal-box h2{
+  margin:0 0 12px 0;
+  font-size:12pt;
+  color:#c0392b;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.modal-close{
+  position:absolute;
+  top:10px;
+  right:14px;
+  font-size:16pt;
+  cursor:pointer;
+  color:#777;
+  background:none;
+  border:none;
+  line-height:1;
+}
+.modal-close:hover{ color:#c0392b; }
+.modal-sep-table{
+  width:100%;
+  border-collapse:collapse;
+  margin:10px 0;
+  font-size:8.5pt;
+}
+.modal-sep-table th{
+  background:#eef3f8;
+  border:1px solid #ccc;
+  padding:5px 8px;
+  text-align:left;
+}
+.modal-sep-table td{
+  border:1px solid #ccc;
+  padding:5px 8px;
+  vertical-align:top;
+}
+.modal-warn{
+  background:#fff8e1;
+  border-left:4px solid #f39c12;
+  padding:8px 12px;
+  border-radius:4px;
+  margin:10px 0;
+  font-size:8.5pt;
+  color:#7d5200;
+}
+.modal-problematic{
+  background:#fef0f0;
+  border-left:4px solid #e74c3c;
+  padding:8px 12px;
+  border-radius:4px;
+  margin:10px 0;
+  font-size:8.5pt;
+  max-height:130px;
+  overflow-y:auto;
+}
+.modal-problematic ul{
+  margin:4px 0;
+  padding-left:18px;
+}
+.modal-problematic li{
+  margin-bottom:3px;
+  font-family:monospace;
+  font-size:8.5pt;
+  color:#922b21;
+}
+.modal-actions{
+  display:flex;
+  gap:10px;
+  margin-top:16px;
+  flex-wrap:wrap;
+}
+.btn-modal-continue{
+  padding:8px 14px;
+  border-radius:8px;
+  background:#e67e22;
+  color:#fff;
+  border:none;
+  cursor:pointer;
+  font-size:8.5pt;
+  font-weight:600;
+}
+.btn-modal-continue:hover{ background:#ca6f1e; }
+.btn-modal-reload{
+  padding:8px 14px;
+  border-radius:8px;
+  background:#c0392b;
+  color:#fff;
+  border:none;
+  cursor:pointer;
+  font-size:8.5pt;
+  font-weight:600;
+}
+.btn-modal-reload:hover{ background:#a93226; }
 </style>
 </head>
 
@@ -207,7 +326,6 @@ td,th{border:1px solid #000;padding:4px;word-wrap:break-word;vertical-align:top}
     </div>
   </div>
   <div class="header-actions">
-    <!-- <a href="https://lioneltissotbez-socotec.github.io/outils_plomb/IDF_Plomb_Tvx_methode_normative_Saisie_Liciel_2025_11.pdf" target="_blank">📄 Voir la fiche méthodo</a>  -->
     <a href="https://socotecgroup-my.sharepoint.com/:v:/g/personal/lionel_tissotbez_socotec_com/IQCg8GkQNSAUSrBa5Gf4JvRGAcFEY8vxwhCqnwXTfNUkRfM?e=X9Qx6J" target="_blank">🎥 Voir le tuto d'utilisation</a>
   </div>
 </div>
@@ -233,7 +351,6 @@ td,th{border:1px solid #000;padding:4px;word-wrap:break-word;vertical-align:top}
     <label><input type="radio" name="groupMode" value="ur-niveau"> UR – par niveau</label><br>
     <label><input type="radio" name="groupMode" value="ur-local"> UR – par local</label>
     <br><br>
-    <!-- ===== NOUVEAU : sous-groupement par bloc UR ===== -->
     <label>
       <input type="checkbox" id="groupByUR" checked>
       <b>Grouper les lignes par bloc d'UR</b>
@@ -275,7 +392,6 @@ td,th{border:1px solid #000;padding:4px;word-wrap:break-word;vertical-align:top}
     <div id="slicesWrap" style="margin-top:6px"></div>
 
     <br>
-    <!-- ===== NOUVEAU : incertitude sur une plage ===== -->
     <b>Incertitude automatique (%) — plage aléatoire :</b>
     <div class="range-row">
       <span>entre</span>
@@ -314,6 +430,59 @@ td,th{border:1px solid #000;padding:4px;word-wrap:break-word;vertical-align:top}
 
 </div><!-- /container -->
 
+<!-- ===== MODAL ALERTE SÉPARATEUR ===== -->
+<div class="modal-overlay" id="modalSep">
+  <div class="modal-box">
+    <button class="modal-close" id="modalCloseBtn" title="Fermer">✕</button>
+    <h2>⚠️ Séparateur ambigu détecté</h2>
+
+    <p>L'outil a détecté des localisations (colonne D) contenant <strong>plusieurs fois le séparateur&nbsp;<code> - </code></strong> (espace-tiret-espace).</p>
+
+    <div class="modal-problematic">
+      <strong>Lignes concernées :</strong>
+      <ul id="modalProbList"></ul>
+    </div>
+
+    <div class="modal-warn">
+      <strong>Rappel de la règle Liciel :</strong> lors de l'export, Liciel concatène les colonnes <strong>Bâtiment</strong> et <strong>Pièce</strong> avec le séparateur <code> - </code> pour former la colonne D.
+      <br><br>
+      Ce séparateur est utilisé par l'outil pour distinguer le <strong>niveau</strong> du <strong>local</strong>. S'il apparaît aussi dans le nom du bâtiment ou de la pièce, la séparation sera incorrecte.
+    </div>
+
+    <table class="modal-sep-table">
+      <tr>
+        <th>Bâtiment (Liciel)</th>
+        <th>Pièce (Liciel)</th>
+        <th>→ Colonne D exportée</th>
+      </tr>
+      <tr>
+        <td>1er étage</td>
+        <td>Cuisine</td>
+        <td><code>1er étage - Cuisine</code> ✅</td>
+      </tr>
+      <tr>
+        <td>1er étage</td>
+        <td>SDB / WC</td>
+        <td><code>1er étage - SDB / WC</code> ✅</td>
+      </tr>
+      <tr>
+        <td style="color:#c0392b">1er/2ème étage - PC</td>
+        <td>Gaine technique</td>
+        <td><code style="color:#c0392b">1er/2ème étage - PC - Gaine technique</code> ❌</td>
+      </tr>
+    </table>
+
+    <div style="font-size:8pt;color:#555;margin-top:4px">
+      ⚠️ Corrigez ces valeurs dans Liciel (supprimez le <code> - </code> des noms de bâtiment/pièce) puis ré-exportez avant de continuer.
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-modal-continue" id="modalContinueBtn">Continuer quand même</button>
+      <button class="btn-modal-reload"   id="modalReloadBtn">Fermer et recharger un fichier</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const uploadArea       = document.getElementById("uploadArea");
 const fileInput        = document.getElementById("fileInput");
@@ -333,6 +502,40 @@ const obsCNPE          = document.getElementById("obsCNPE");
 const groupByUR        = document.getElementById("groupByUR");
 const btnViewDetail    = document.getElementById("btnViewDetail");
 const btnViewSynthese  = document.getElementById("btnViewSynthese");
+
+/* ===== MODAL ===== */
+const modalSep         = document.getElementById("modalSep");
+const modalProbList    = document.getElementById("modalProbList");
+const modalCloseBtn    = document.getElementById("modalCloseBtn");
+const modalContinueBtn = document.getElementById("modalContinueBtn");
+const modalReloadBtn   = document.getElementById("modalReloadBtn");
+
+/* Fermeture modale */
+function closeModal(){ modalSep.classList.remove('open'); }
+modalCloseBtn.onclick   = closeModal;
+modalContinueBtn.onclick = () => { closeModal(); render(); };
+modalReloadBtn.onclick   = () => {
+  closeModal();
+  rowsCache = [];
+  previewContainer.style.display = 'none';
+  previewArea.innerHTML  = '';
+  syntheseArea.innerHTML = '';
+  fileInput.value = '';
+};
+/* Clic hors de la boîte → ferme */
+modalSep.addEventListener('click', e => {
+  if(e.target === modalSep) closeModal();
+});
+
+/* ===== Détection séparateur ambigu ===== */
+/* Règle : une ligne D contient >=2 occurrences de " - "             */
+/* On compte les occurrences avec split(' - ').length - 1 > 1        */
+function detectAmbiguousSeparator(rows){
+  const SEP = ' - ';
+  return rows
+    .map(r => String(r[3] || '').trim())   // colonne D = index 3 dans tableau brut
+    .filter(v => v.split(SEP).length - 1 >= 2);
+}
 
 let rowsCache  = [];
 let activeView = 'detail';
@@ -355,7 +558,7 @@ function colgroupHTML(){
 }
 
 /* ===================== UPLOAD ===================== */
-pickBtn.onclick  = () => fileInput.click();
+pickBtn.onclick    = () => fileInput.click();
 uploadArea.onclick = () => fileInput.click();
 fileInput.onchange = () => handleFile(fileInput.files[0]);
 
@@ -364,11 +567,27 @@ function handleFile(file){
   r.onload = e => {
     const wb   = XLSX.read(e.target.result, {type:"array"});
     const sh   = wb.Sheets[wb.SheetNames[0]];
-    const data = XLSX.utils.sheet_to_json(sh, {header:1, defval:''}).slice(1);
+    /* On garde les données brutes pour la détection AVANT mapping */
+    const rawData = XLSX.utils.sheet_to_json(sh, {header:1, defval:''}).slice(1);
+
+    /* ===== DÉTECTION SÉPARATEUR AMBIGU ===== */
+    const problematic = detectAmbiguousSeparator(rawData);
+    if(problematic.length > 0){
+      /* Remplir la liste des lignes problématiques */
+      modalProbList.innerHTML = problematic
+        .slice(0, 20)   /* max 20 pour ne pas surcharger */
+        .map(v => `<li>${v}</li>`)
+        .join('');
+      if(problematic.length > 20){
+        modalProbList.innerHTML += `<li style="color:#777;font-style:italic">... et ${problematic.length - 20} autre(s)</li>`;
+      }
+      modalSep.classList.add('open');
+      /* On charge quand même rowsCache pour que "continuer" fonctionne */
+    }
 
     const IDX = {C:2,D:3,E:4,F:5,G:6,H:7,I:8,J:9,K:10,M:12,P:15,Q:16,S:18};
 
-    rowsCache = data.map(r => ({
+    rowsCache = rawData.map(r => ({
       C:r[IDX.C], D:r[IDX.D], E:r[IDX.E], F:r[IDX.F],
       G:r[IDX.G], H:r[IDX.H], I:r[IDX.I], J:r[IDX.J],
       K:r[IDX.K],
@@ -378,7 +597,8 @@ function handleFile(file){
       S:r[IDX.S]
     }));
 
-    render();
+    /* Si pas de problème → affichage direct */
+    if(problematic.length === 0) render();
   };
   r.readAsArrayBuffer(file);
 }
@@ -399,13 +619,31 @@ uploadArea.addEventListener("drop", e => {
 });
 
 /* ===================== OUTILS ===================== */
+
+/*
+  RÈGLE DE SÉPARATION NIVEAU / LOCAL
+  ===================================
+  Liciel concatène Bâtiment et Pièce avec le séparateur " - "
+  (espace-tiret-espace) dans la colonne D à l'export.
+  → Tout ce qui précède le PREMIER " - " = niveau (Bâtiment)
+  → Tout ce qui suit  le PREMIER " - " = local  (Pièce)
+  Les " - " éventuels dans le nom de la Pièce sont conservés.
+*/
 function splitLevelLocal(v){
   if(!v) return {level:'', local:''};
-  const p = String(v).split('-');
-  return {level: p[0]?.trim() || '', local: p.slice(1).join('-').trim()};
+  const SEP = ' - ';
+  const idx = String(v).indexOf(SEP);
+  if(idx === -1) return {level: String(v).trim(), local: ''};
+  return {
+    level: String(v).slice(0, idx).trim(),
+    local: String(v).slice(idx + SEP.length).trim()
+  };
 }
+
 function parseNumber(v){
-  return Number(String(v||'').replace(',','.').replace(/[^0-9.]/g,''));
+  const s = String(v||'').replace(',','.').replace(/[^0-9.]/g,'');
+  if(s === '') return NaN;   // chaîne vide = pas un nombre → texte conservé tel quel
+  return Number(s);
 }
 function formatPlombValue(v){
   const n = parseNumber(v);
@@ -429,17 +667,13 @@ function groupTitleBase(it){
 /* ===== Observation (CNPE) ===== */
 function getObservation(it){
   const baseObs = String(it.P || '').trim();
-
   if(!obsCNPE.checked) return baseObs;
-
   const raw = String(it.K || '')
     .replace(',', '.')
     .replace(/\s/g, '')
     .replace(/[^0-9.]/g, '');
   const v = Number(raw);
-
   if(isNaN(v)) return baseObs;
-
   const tag = (v < 0.3) ? '&lt;LQ' : '&gt;LQ';
   if(baseObs.includes('<LQ') || baseObs.includes('>LQ')) return baseObs;
   if(!baseObs) return tag;
@@ -447,19 +681,13 @@ function getObservation(it){
 }
 
 /* ===================== INCERTITUDE ALÉATOIRE ===================== */
-/* Génère une incertitude aléatoire dans la plage [min%, max%]
-   avec un plancher absolu à 0,02 mg/cm²                          */
 function computeInc(it){
   if(isNM(it)) return '';
   const res = parseNumber(it.K);
   if(isNaN(res)) return '';
-
-  // Si Q contient déjà une valeur on l'utilise
   if(it.Q !== '' && it.Q != null) return it.Q;
-
   const minPct = parseNumber(uncertaintyMin.value) / 100;
   const maxPct = parseNumber(uncertaintyMax.value)  / 100;
-  // tirage aléatoire uniforme dans [minPct, maxPct]
   const pct = minPct + Math.random() * (maxPct - minPct);
   return Math.max(0.02, res * pct).toFixed(2);
 }
@@ -536,7 +764,6 @@ function buildSlices(){
     `);
   }
 
-  /* ===== FIX : fermeture des popups au clic extérieur ===== */
   document.addEventListener('click', e => {
     document.querySelectorAll('.palette-pop').forEach(pop => {
       if(!pop.closest('.slice-row').contains(e.target)){
@@ -562,11 +789,9 @@ function buildSlices(){
       });
     };
 
-    /* ===== FIX bouton 🎨 : stopPropagation pour ne pas déclencher fermeture ===== */
     btn.addEventListener('click', e => {
       e.stopPropagation();
       const isOpen = pop.style.display === 'block';
-      // Ferme tous les autres
       document.querySelectorAll('.palette-pop').forEach(p => p.style.display = 'none');
       pop.style.display = isOpen ? 'none' : 'block';
     });
@@ -581,7 +806,6 @@ function buildSlices(){
       });
     });
 
-    /* ===== FIX bouton OK : stopPropagation + fermeture popup ===== */
     ok.addEventListener('click', e => {
       e.stopPropagation();
       const v = normalizeHex(hex.value);
@@ -596,7 +820,6 @@ function buildSlices(){
       if(e.key === 'Enter'){ e.preventDefault(); ok.click(); }
     });
 
-    /* Mise à jour couleur de l'input hex à la saisie */
     hex.addEventListener('input', () => {
       const v = normalizeHex(hex.value);
       if(v) preview.style.background = v;
@@ -626,13 +849,11 @@ function buildLegend(){
   const thrs = document.querySelectorAll('.thr');
   const cols = document.querySelectorAll('.col');
   if(!thrs.length || !cols.length) return '';
-
   let items = '';
   thrs.forEach((t, i) => {
     const col = cols[i]?.value || '#ccc';
     items += `<span style="display:inline-block;background:${col};padding:2px 6px;margin-right:6px;border:1px solid #000;font-size:8pt;">≥ ${t.value}</span>`;
   });
-
   return `
     <table style="margin-top:10px;width:90%;max-width:17cm;border-collapse:collapse">
       <tr>
@@ -644,7 +865,6 @@ function buildLegend(){
 }
 
 /* ===================== COLONNES EXTRA ===================== */
-/* FIX : obsCNPE unifié dans les deux modes */
 const thExtra = () => `
   ${(showObs.checked || obsCNPE.checked) ? `<th>Observation</th>` : ''}
   ${showDeg.checked ? `<th>Dégradation</th>` : ''}
@@ -655,14 +875,10 @@ const tdExtra = (it) => `
 `;
 
 /* ===================== SOUS-GROUPEMENT PAR UR ===================== */
-/* Si groupByUR est coché :
-   - trie les lignes par numéro d'UR (numérique si possible, sinon alpha)
-   - insère un <tr class="ur-block-title"> à chaque changement de N° UR  */
 function renderRowsGroupedByUR(items, urMode, COLS, buildRowHTML){
   let list = [...items];
 
   if(groupByUR.checked){
-    // Tri par numéro d'UR
     list.sort((a, b) => {
       const ua = (urMode === 'auto') ? a.UR_AUTO : (a.F || '');
       const ub = (urMode === 'auto') ? b.UR_AUTO : (b.F || '');
@@ -672,12 +888,11 @@ function renderRowsGroupedByUR(items, urMode, COLS, buildRowHTML){
     });
   }
 
-  let html    = '';
-  let lastUR  = null;
+  let html   = '';
+  let lastUR = null;
 
   list.forEach(it => {
     const urVal = (urMode === 'auto') ? it.UR_AUTO : (it.F || '');
-
     if(groupByUR.checked && urVal !== lastUR){
       lastUR = urVal;
       html += `<tr class="ur-block-title"><td colspan="${COLS}">Unité de Repérage N° ${urVal}</td></tr>`;
@@ -697,11 +912,11 @@ function uniqueLevelsLabel(items){
 }
 
 /* ===================== RENDER ===================== */
-enableColors.onchange = render;
-showObs.onchange      = render;
-showDeg.onchange      = render;
-obsCNPE.onchange      = render;
-groupByUR.onchange    = render;
+enableColors.onchange   = render;
+showObs.onchange        = render;
+showDeg.onchange        = render;
+obsCNPE.onchange        = render;
+groupByUR.onchange      = render;
 uncertaintyMin.onchange = render;
 uncertaintyMax.onchange = render;
 document.querySelectorAll('input[name="groupMode"]').forEach(r => r.onchange = render);
@@ -800,7 +1015,6 @@ function render(){
   });
 
   for(const [k, items] of groups){
-    // Ajout du niveau dans le titre sauf pour ur-niveau (déjà dans la clé)
     const lvlLabel = (mode === 'ur-niveau') ? '' : uniqueLevelsLabel(items);
     let html = `<table>${CG}
       <tr class="local-title"><td colspan="${COLS}">${k}${lvlLabel}</td></tr>
@@ -836,8 +1050,7 @@ function render(){
   const legend = buildLegend();
   if(legend) previewArea.insertAdjacentHTML("beforeend", legend);
   previewContainer.style.display = "block";
-
-  renderSynthese(); // mise à jour simultanée du tableau synthèse
+  renderSynthese();
 }
 
 /* ===================== TOGGLE VUE ===================== */
@@ -860,7 +1073,7 @@ function setView(v){
 btnViewDetail.onclick   = () => setView('detail');
 btnViewSynthese.onclick = () => setView('synthese');
 
-/* ===================== TRANCHE LABEL (affichage français) ===================== */
+/* ===================== TRANCHE LABEL ===================== */
 function trancheLabel(v){
   if(isNaN(v)) return 'NR';
   if(v === 0)  return '0 mg/cm²';
@@ -903,9 +1116,7 @@ function renderSynthese(){
     <th>Nb de mesures concernées</th>
   </tr>`;
 
-  /* Construit les lignes synthèse d'un groupe d'items */
   function buildSynRows(items){
-    // Regrouper par (urVal + G + H + I + tranche)
     const urMap = new Map();
     items.forEach(it => {
       const urVal   = (urMode === 'auto') ? it.UR_AUTO : (it.F || '');
@@ -921,7 +1132,6 @@ function renderSynthese(){
       if(!isNaN(kVal) && kVal > e.maxK) e.maxK = kVal;
     });
 
-    // Tri par numéro d'UR
     const entries = [...urMap.values()].sort((a,b)=>{
       const na=parseFloat(a.urVal), nb=parseFloat(b.urVal);
       if(!isNaN(na)&&!isNaN(nb)) return na-nb;
@@ -942,7 +1152,6 @@ function renderSynthese(){
     }).join('');
   }
 
-  /* — MODE Local → UR — */
   if(mode === 'local-ur'){
     const localMap = new Map();
     rows.forEach(it => {
@@ -964,7 +1173,6 @@ function renderSynthese(){
     return;
   }
 
-  /* — MODES UR / UR-NIVEAU / UR-LOCAL — */
   const groups = new Map();
   rows.forEach(it => {
     const {level, local} = splitLevelLocal(it.D);
@@ -987,28 +1195,21 @@ function renderSynthese(){
 }
 
 /* ===================== WORD – INLINE STYLES ===================== */
-/*
-  Largeurs colonnes en cm pour Word (A4 portrait, ~16cm utiles).
-  Triple verrouillage : mso-width-source:userset sur <col>
-                      + width sur chaque cellule par index
-                      + white-space:nowrap sur colonnes courtes
-*/
 const WORD_COL_WIDTHS = [
-  {w:'1.1cm', nowrap:true },  // 0  UR N°
-  {w:'1.2cm', nowrap:true },  // 1  N° mesure
-  {w:'1.6cm', nowrap:false},  // 2  Niveau
-  {w:'2.8cm', nowrap:false},  // 3  UR name / Local
-  {w:'2.2cm', nowrap:false},  // 4  Zone
-  {w:'2.2cm', nowrap:false},  // 5  Substrat
-  {w:'2.4cm', nowrap:false},  // 6  Revêtement
-  {w:'1.8cm', nowrap:true },  // 7  Teneur plomb
-  {w:'1.8cm', nowrap:true },  // 8  Incertitude
-  {w:'1.6cm', nowrap:false},  // 9  Observation (optionnel)
-  {w:'1.4cm', nowrap:false},  // 10 Dégradation (optionnel)
+  {w:'1.1cm', nowrap:true },
+  {w:'1.2cm', nowrap:true },
+  {w:'1.6cm', nowrap:false},
+  {w:'2.8cm', nowrap:false},
+  {w:'2.2cm', nowrap:false},
+  {w:'2.2cm', nowrap:false},
+  {w:'2.4cm', nowrap:false},
+  {w:'1.8cm', nowrap:true },
+  {w:'1.8cm', nowrap:true },
+  {w:'1.6cm', nowrap:false},
+  {w:'1.4cm', nowrap:false},
 ];
 
 function inlineForWord(table){
-  /* — Titres — */
   table.querySelectorAll('tr.local-title td').forEach(td => {
     td.style.background    = '#00ACE8';
     td.style.color         = '#ffffff';
@@ -1038,8 +1239,6 @@ function inlineForWord(table){
     th.style.textAlign     = 'center';
     th.style.verticalAlign = 'middle';
   });
-
-  /* — Style global toutes cellules — */
   table.querySelectorAll('td, th').forEach(cell => {
     cell.style.border        = '1px solid #000';
     cell.style.padding       = '3px 4px';
@@ -1049,38 +1248,25 @@ function inlineForWord(table){
     cell.style.wordBreak     = 'break-word';
     cell.style.whiteSpace    = 'normal';
   });
-
-  /* — mso-width-source:userset sur chaque <col> — */
   table.querySelectorAll('colgroup col').forEach((col, i) => {
     const cfg = WORD_COL_WIDTHS[i];
     if(!cfg) return;
     col.setAttribute('style',
       `width:${cfg.w}; mso-width-source:userset; mso-width-alt:auto`);
   });
-
-  /* — Largeur + nowrap par cellule selon index — */
   table.querySelectorAll('tr').forEach(tr => {
     const firstCell = tr.children[0];
     if(!firstCell) return;
-    // Lignes de titre colspan : largeur 100% seulement
-    if(firstCell.colSpan > 1){
-      firstCell.style.width = '100%';
-      return;
-    }
+    if(firstCell.colSpan > 1){ firstCell.style.width = '100%'; return; }
     Array.from(tr.children).forEach((cell, i) => {
       const cfg = WORD_COL_WIDTHS[i];
       if(!cfg) return;
       cell.style.width    = cfg.w;
       cell.style.minWidth = cfg.w;
       cell.style.maxWidth = cfg.w;
-      if(cfg.nowrap){
-        cell.style.whiteSpace = 'nowrap';
-        cell.style.wordBreak  = 'normal';
-      }
+      if(cfg.nowrap){ cell.style.whiteSpace = 'nowrap'; cell.style.wordBreak = 'normal'; }
     });
   });
-
-  /* — Table globale — */
   table.style.borderCollapse = 'collapse';
   table.style.tableLayout    = 'fixed';
   table.style.width          = '16.1cm';
@@ -1088,9 +1274,6 @@ function inlineForWord(table){
   table.style.fontFamily     = 'Arial';
 }
 
-/* ===================== COPY WORD ===================== */
-
-/* Largeurs Word pour le tableau synthèse (6 colonnes) */
 const WORD_SYN_WIDTHS = [
   {w:'1.2cm', nowrap:true },
   {w:'3.5cm', nowrap:false},
@@ -1135,13 +1318,14 @@ function inlineForWordSynthese(table){
   table.style.fontFamily='Arial'; table.style.fontSize='8pt';
 }
 
+/* ===================== COPY WORD ===================== */
 copyAllBtn.onclick = async () => {
   let html = `<style>
     table{border-collapse:collapse;width:100%;font-family:Arial;font-size:8pt}
     td,th{border:1px solid #000;padding:4px}
   </style>`;
 
-  const srcEl  = activeView === 'synthese' ? syntheseArea : previewArea;
+  const srcEl   = activeView === 'synthese' ? syntheseArea : previewArea;
   const styleFn = activeView === 'synthese' ? inlineForWordSynthese : inlineForWord;
 
   srcEl.querySelectorAll("table").forEach(t => {
