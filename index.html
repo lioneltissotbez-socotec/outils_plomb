@@ -585,13 +585,14 @@ function handleFile(file){
       /* On charge quand même rowsCache pour que "continuer" fonctionne */
     }
 
-    const IDX = {C:2,D:3,E:4,F:5,G:6,H:7,I:8,J:9,K:10,M:12,P:15,Q:16,S:18};
+    const IDX = {C:2,D:3,E:4,F:5,G:6,H:7,I:8,J:9,K:10,M:12,N:13,P:15,Q:16,S:18};
 
     rowsCache = rawData.map(r => ({
       C:r[IDX.C], D:r[IDX.D], E:r[IDX.E], F:r[IDX.F],
       G:r[IDX.G], H:r[IDX.H], I:r[IDX.I], J:r[IDX.J],
       K:r[IDX.K],
       M:r[IDX.M],
+      N:r[IDX.N],
       P:r[IDX.P],
       Q:r[IDX.Q],
       S:r[IDX.S]
@@ -652,7 +653,9 @@ function formatPlombValue(v){
   return v;
 }
 function isNM(it){
-  return String(it.P || '').trim().toUpperCase() === 'NM';
+  return String(it.P || '').trim().toUpperCase() === 'NM'
+      || String(it.K || '').trim().toUpperCase() === 'NM'
+      || String(it.N || '').trim().toUpperCase() === 'NM';
 }
 function buildZone(it){
   return [it.E, it.J, it.S]
